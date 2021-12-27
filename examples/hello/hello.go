@@ -18,5 +18,5 @@ type Reply struct {
 }
 
 type Hello interface {
-	SayHi(*Greeting) *Reply
+	SayHi(Greeting) *Reply
 }

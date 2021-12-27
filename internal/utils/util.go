@@ -1,6 +1,6 @@
-package main
+package utils
 
-func stringIn(s string, ss []string) bool {
+func OneOf(s string, ss []string) bool {
 	for _, i := range ss {
 		if i == s {
 			return true
