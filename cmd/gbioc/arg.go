@@ -16,6 +16,7 @@ var (
 	target        string
 	marshaller    string
 	discriminator string
+	ctxKey        string
 )
 
 const (
@@ -73,22 +74,31 @@ func parseArgs() {
 	)
 	flag.StringVar(
 		&discriminator,
-		"discriminator",
+		"enumtag",
 		"_t",
-		"discriminator key for tagged union types",
+		"discriminator key for enum types",
+	)
+	flag.StringVar(
+		&ctxKey,
+		"ctxkey",
+		"ctx",
+		"context key for (un)marshalling context",
 	)
 
 	flag.Usage = showUsage
 	flag.Parse()
 }
 
+func invalidArg(format string, v ...interface{}) {
+	showUsage()
+	log.Fatalf(format, v...)
+}
+
 func validateArgs() {
 	if !utils.OneOf(target, targets) {
-		showUsage()
-		log.Fatalf("Invalid code generation target: %s\n", target)
+		invalidArg("Invalid code generation target: %s\n", target)
 	}
 	if !utils.OneOf(marshaller, marshallers) {
-		showUsage()
-		log.Fatalf("Invalid marshalling format: %s\n", marshaller)
+		invalidArg("Invalid marshalling format: %s\n", marshaller)
 	}
 }

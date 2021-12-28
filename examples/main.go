@@ -16,6 +16,9 @@ func (HelloService) SayHi(g hello.Greeting) *hello.Reply {
 }
 
 func main() {
-	s := hello.NewServer(new(HelloService), ":8080")
-	s.ListenAndServe()
+	if err := hello.
+		NewServer(new(HelloService), ":8080").
+		ListenAndServe(); err != nil {
+		panic(err)
+	}
 }

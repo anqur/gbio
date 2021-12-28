@@ -1,8 +1,16 @@
 package hello
 
-type JustHi struct{}
+type BaseGreeting struct {
+	ReqID string `header:"x-request-id"`
+}
+
+type JustHi struct {
+	BaseGreeting
+}
 
 type SelfIntro struct {
+	BaseGreeting
+
 	Name string
 }
 
