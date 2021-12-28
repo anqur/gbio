@@ -26,11 +26,15 @@ func NewClient(url string) (*Client, error) {
 }
 
 func (c *Client) Call() *Call {
-	return &Call{cl: c}
+	return &Call{
+		cl: c,
+		u:  &urls.URL{Scheme: c.u.Scheme, Host: c.u.Host},
+	}
 }
 
 type Call struct {
 	cl    *Client
+	u     *urls.URL
 	Error error
 }
 
@@ -71,10 +75,10 @@ func (c *Call) SayHi(greeting Greeting) *Reply {
 
 	// TODO: Marshal context.
 
-	c.cl.u.Path = "/SayHi"
+	c.u.Path = "/SayHi"
 	var r *http.Response
 	r, c.Error = c.cl.h.Post(
-		c.cl.u.String(),
+		c.u.String(),
 		"application/json",
 		bytes.NewReader(d),
 	)
