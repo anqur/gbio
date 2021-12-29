@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+
+	"github.com/anqur/gbio/internal/loggers"
 )
 
 type helloDelegate struct {
@@ -130,6 +132,7 @@ func (d *helloDelegate) SayHi(r Greeting) *Reply {
 
 func NewServer(s Hello, addr string) *http.Server {
 	d := &helloDelegate{s: s}
+
 	d.HandleFunc("/SayHi", func(w http.ResponseWriter, r *http.Request) {
 		req, err := unmarshal(r)
 		if err != nil {
@@ -138,6 +141,8 @@ func NewServer(s Hello, addr string) *http.Server {
 		}
 		ok(w, d.s.SayHi(req))
 	})
+	loggers.Info.Println("Registered", addr, "hello.Hello", http.MethodPost, "/SayHi")
+
 	return &http.Server{
 		Addr:    addr,
 		Handler: d,

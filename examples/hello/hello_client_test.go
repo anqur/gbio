@@ -1,22 +1,19 @@
-package hello
+package hello_test
 
 import (
 	"fmt"
 	"testing"
+
+	"github.com/anqur/gbio/examples/hello"
 )
 
 func TestClient(t *testing.T) {
-	cl, err := NewClient("http://localhost:8080")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	call := cl.Call()
-	r := call.SayHi(&SelfIntro{
-		BaseGreeting: BaseGreeting{ReqID: "lolwtf"},
+	tx := hello.Do()
+	r := tx.SayHi(&hello.SelfIntro{
+		BaseGreeting: hello.BaseGreeting{ReqID: "lolwtf"},
 		Name:         "Anqur",
 	})
-	if err := call.Error; err != nil {
+	if err := tx.Error; err != nil {
 		t.Fatal(err)
 	}
 	fmt.Println(r)

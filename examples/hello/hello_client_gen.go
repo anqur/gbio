@@ -5,36 +5,20 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	urls "net/url"
+
+	"github.com/anqur/gbio"
 )
 
-type Client struct {
-	h *http.Client
-	u *urls.URL
+func Do() *Doer {
+	return &Doer{cl: gbio.DefaultClient}
 }
 
-func NewClient(url string) (*Client, error) {
-	u, err := urls.Parse(url)
-	if err != nil {
-		return nil, err
-	}
-	return &Client{
-		// TODO: Options to pass the HTTP client.
-		h: http.DefaultClient,
-		u: u,
-	}, nil
+func With(cl *gbio.Client) *Doer {
+	return &Doer{cl: cl}
 }
 
-func (c *Client) Call() *Call {
-	return &Call{
-		cl: c,
-		u:  &urls.URL{Scheme: c.u.Scheme, Host: c.u.Host},
-	}
-}
-
-type Call struct {
-	cl    *Client
-	u     *urls.URL
+type Doer struct {
+	cl    *gbio.Client
 	Error error
 }
 
@@ -48,7 +32,7 @@ type taggedSelfIntro struct {
 	*SelfIntro
 }
 
-func (c *Call) SayHi(greeting Greeting) *Reply {
+func (c *Doer) SayHi(greeting Greeting) *Reply {
 	var d []byte
 	switch r := greeting.(type) {
 	case JustHi:
@@ -75,13 +59,20 @@ func (c *Call) SayHi(greeting Greeting) *Reply {
 
 	// TODO: Marshal context.
 
-	c.u.Path = "/SayHi"
+	var url string
+	url, c.Error = c.cl.LookupEndpoint("hello.Hello")
+	if c.Error != nil {
+		return nil
+	}
+
 	var r *http.Response
-	r, c.Error = c.cl.h.Post(
-		c.u.String(),
-		"application/json",
-		bytes.NewReader(d),
-	)
+	r, c.Error = c.cl.
+		HttpClient().
+		Post(
+			url+"/SayHi",
+			"application/json",
+			bytes.NewReader(d),
+		)
 	if c.Error != nil {
 		return nil
 	}

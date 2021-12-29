@@ -1,21 +1,13 @@
 package gbio
 
 import (
-	"github.com/anqur/gbio/internal/clients"
+	"log"
+
+	"github.com/anqur/gbio/internal/errors"
+	"github.com/anqur/gbio/internal/loggers"
 )
 
-type Client struct {
-	s clients.Setting
-}
+var Err = errors.Err
 
-type Option interface {
-	Apply(s *clients.Setting)
-}
-
-func New(opts ...Option) (c *Client) {
-	c = new(Client)
-	for _, opt := range opts {
-		opt.Apply(&c.s)
-	}
-	return
-}
+func UseInfoLogger(l *log.Logger)  { loggers.Info = l }
+func UseErrorLogger(l *log.Logger) { loggers.Error = l }
