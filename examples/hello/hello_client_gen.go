@@ -33,31 +33,36 @@ type taggedSelfIntro struct {
 }
 
 func (c *Doer) SayHi(greeting Greeting) *Reply {
+	// TODO: Impose code generation on marshalling context.
+	ctx := make(map[string]string)
+
 	var d []byte
 	switch r := greeting.(type) {
 	case JustHi:
 		tagged := &taggedJustHi{JustHi: &r}
 		tagged.Tag = "JustHi"
 		d, c.Error = json.Marshal(tagged)
+		ctx["x-request-id"] = r.ReqID
 	case *JustHi:
 		tagged := &taggedJustHi{JustHi: r}
 		tagged.Tag = "JustHi"
 		d, c.Error = json.Marshal(tagged)
+		ctx["x-request-id"] = r.ReqID
 
 	case SelfIntro:
 		tagged := &taggedSelfIntro{SelfIntro: &r}
 		tagged.Tag = "SelfIntro"
 		d, c.Error = json.Marshal(tagged)
+		ctx["x-request-id"] = r.ReqID
 	case *SelfIntro:
 		tagged := &taggedSelfIntro{SelfIntro: r}
 		tagged.Tag = "SelfIntro"
 		d, c.Error = json.Marshal(tagged)
+		ctx["x-request-id"] = r.ReqID
 	}
 	if c.Error != nil {
 		return nil
 	}
-
-	// TODO: Marshal context.
 
 	var url string
 	url, c.Error = c.cl.LookupEndpoint("hello.Hello")
@@ -65,14 +70,23 @@ func (c *Doer) SayHi(greeting Greeting) *Reply {
 		return nil
 	}
 
+	var req *http.Request
+	req, c.Error = http.NewRequest(
+		http.MethodPost,
+		url+"/SayHi",
+		bytes.NewReader(d),
+	)
+	if c.Error != nil {
+		return nil
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	for k, v := range ctx {
+		req.Header.Add(k, v)
+	}
+
 	var r *http.Response
-	r, c.Error = c.cl.
-		HttpClient().
-		Post(
-			url+"/SayHi",
-			"application/json",
-			bytes.NewReader(d),
-		)
+	r, c.Error = c.cl.HttpClient().Do(req)
 	if c.Error != nil {
 		return nil
 	}

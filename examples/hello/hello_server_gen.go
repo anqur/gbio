@@ -38,6 +38,7 @@ func parseCtxValue(ty reflect.Type, v []string) (reflect.Value, error) {
 	return reflect.Value{}, fmt.Errorf("expected `string` or `[]string` as context value type, found %q", ty.Kind())
 }
 
+// TODO: Unmarshalling context values without reflection, just use code generation.
 func unmarshalCtx(r *http.Request, req interface{}) error {
 	ty := reflect.TypeOf(req)
 	val := reflect.ValueOf(req)
