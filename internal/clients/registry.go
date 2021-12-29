@@ -29,6 +29,7 @@ type Registry struct {
 	Tick   time.Duration
 	Cp     func() context.Context
 	Prefix string
+	Lb     LB
 
 	cl        *etcd.Client
 	endpoints map[EndpointKey]ServiceList
@@ -41,6 +42,7 @@ func NewRegistry(c *etcd.Config) *Registry {
 		Tick:   30 * time.Second,
 		Cp:     context.Background,
 		Prefix: "gbio-",
+		Lb:     FirstLB(),
 	}
 }
 
@@ -115,8 +117,7 @@ func (r *Registry) pick(k ServiceKey) (string, error) {
 		return "", fmt.Errorf("%w: %q", ErrEndpointNotFound, k)
 	}
 
-	// TODO: Load balancing.
-	return ep[0], nil
+	return r.Lb.Pick(ep), nil
 }
 
 func (r *Registry) PickUpstream(k ServiceKey) (string, error) {

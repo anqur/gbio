@@ -79,6 +79,14 @@ func WithPrefix(p string) RegistryOption {
 	return func(r *clients.Registry) { r.Prefix = p }
 }
 
+func WithPickFirst() RegistryOption {
+	return func(r *clients.Registry) { r.Lb = clients.FirstLB() }
+}
+
+func WithPickRandom() RegistryOption {
+	return func(r *clients.Registry) { r.Lb = clients.RandLB() }
+}
+
 func WithHttpClient(h *http.Client) Option {
 	return func(c *clients.Client) error {
 		c.H = h
