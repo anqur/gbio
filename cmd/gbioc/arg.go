@@ -16,7 +16,6 @@ var (
 	target        string
 	marshaller    string
 	discriminator string
-	ctxKey        string
 )
 
 const (
@@ -77,12 +76,6 @@ func parseArgs() {
 		"enumtag",
 		"_t",
 		"discriminator key for enum types",
-	)
-	flag.StringVar(
-		&ctxKey,
-		"ctxkey",
-		"ctx",
-		"context key for (un)marshalling context",
 	)
 
 	flag.Usage = showUsage

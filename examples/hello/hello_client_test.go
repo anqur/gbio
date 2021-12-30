@@ -16,5 +16,5 @@ func TestClient(t *testing.T) {
 	if err := tx.Error; err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(r)
+	fmt.Printf("%+v\n", r)
 }

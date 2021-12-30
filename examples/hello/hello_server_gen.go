@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
-
-	"github.com/anqur/gbio/internal/loggers"
 )
 
-type helloDelegate struct {
+type helloMux struct {
 	http.ServeMux
 
 	s Hello
@@ -18,72 +15,6 @@ type helloDelegate struct {
 
 type discriminator struct {
 	Tag string `json:"_t"`
-}
-
-var emptyStrVal = reflect.ValueOf("")
-
-func parseCtxValue(ty reflect.Type, v []string) (reflect.Value, error) {
-	switch ty.Kind() {
-	case reflect.String:
-		if len(v) > 0 {
-			return reflect.ValueOf(v[0]), nil
-		}
-		return emptyStrVal, nil
-	case reflect.Slice:
-		if ty.Elem().Kind() != reflect.String {
-			return reflect.Value{}, fmt.Errorf("expected `[]string` for context value slice, found %q", ty.Kind())
-		}
-		return reflect.ValueOf(v), nil
-	}
-	return reflect.Value{}, fmt.Errorf("expected `string` or `[]string` as context value type, found %q", ty.Kind())
-}
-
-// TODO: Unmarshalling context values without reflection, just use code generation.
-func unmarshalCtx(r *http.Request, req interface{}) error {
-	ty := reflect.TypeOf(req)
-	val := reflect.ValueOf(req)
-	if ty.Kind() == reflect.Ptr {
-		ty = ty.Elem()
-		val = val.Elem()
-	}
-	if ty.Kind() != reflect.Struct {
-		return fmt.Errorf("expected struct model, found %q", ty.Kind())
-	}
-
-	for i := 0; i < ty.NumField(); i++ {
-		tyField := ty.Field(i)
-		valField := val.Field(i)
-		if tyField.Anonymous {
-			anon := valField.Interface()
-			if tyField.Type.Kind() == reflect.Struct {
-				anon = valField.Addr().Interface()
-			}
-			if err := unmarshalCtx(r, anon); err != nil {
-				return err
-			}
-			continue
-		}
-
-		ctxKey := tyField.Tag.Get("ctx")
-		if ctxKey == "" {
-			continue
-		}
-
-		k := http.CanonicalHeaderKey(ctxKey)
-		v, ok := r.Header[k]
-		if !ok {
-			continue
-		}
-
-		val, err := parseCtxValue(tyField.Type, v)
-		if err != nil {
-			return err
-		}
-
-		valField.Set(val)
-	}
-
-	return nil
 }
 
 func unmarshal(r *http.Request) (Greeting, error) {
@@ -102,16 +33,14 @@ func unmarshal(r *http.Request) (Greeting, error) {
 		var v JustHi
 		err = json.Unmarshal(d, &v)
 		req = &v
+		v.BaseGreeting.ReqID = r.Header.Get("x-request-id")
 	case "SelfIntro":
 		var v SelfIntro
 		err = json.Unmarshal(d, &v)
 		req = &v
+		v.BaseGreeting.ReqID = r.Header.Get("x-request-id")
 	default:
 		return nil, fmt.Errorf("unknown message tag %q", tag.Tag)
-	}
-
-	if err := unmarshalCtx(r, req); err != nil {
-		return nil, err
 	}
 	return req, err
 }
@@ -127,13 +56,12 @@ func ok(w http.ResponseWriter, v interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 }
 
-func (d *helloDelegate) SayHi(r Greeting) *Reply {
+func (d *helloMux) SayHi(r Greeting) *Reply {
 	return d.s.SayHi(r)
 }
 
-func NewServer(s Hello, addr string) *http.Server {
-	d := &helloDelegate{s: s}
-
+func Mux(s Hello) http.Handler {
+	d := &helloMux{s: s}
 	d.HandleFunc("/SayHi", func(w http.ResponseWriter, r *http.Request) {
 		req, err := unmarshal(r)
 		if err != nil {
@@ -142,10 +70,9 @@ func NewServer(s Hello, addr string) *http.Server {
 		}
 		ok(w, d.s.SayHi(req))
 	})
-	loggers.Info.Println("Registered", addr, "hello.Hello", http.MethodPost, "/SayHi")
+	return d
+}
 
-	return &http.Server{
-		Addr:    addr,
-		Handler: d,
-	}
+func NewServer(s Hello, addr string) *http.Server {
+	return &http.Server{Addr: addr, Handler: Mux(s)}
 }

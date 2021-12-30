@@ -19,9 +19,9 @@ type Client struct {
 	cl clients.Client
 }
 
-type Option func(c *clients.Client) error
+type ClientOption func(c *clients.Client) error
 
-func NewClient(opts ...Option) (c *Client, err error) {
+func NewClient(opts ...ClientOption) (c *Client, err error) {
 	c = new(Client)
 	for _, opt := range opts {
 		if err = opt(&c.cl); err != nil {
@@ -36,7 +36,7 @@ var DefaultClient, _ = NewClient(
 	WithEndpoint("http://localhost:8080"),
 )
 
-func WithEndpoint(rawUrl string) Option {
+func WithEndpoint(rawUrl string) ClientOption {
 	return func(c *clients.Client) (err error) {
 		c.U, err = url.Parse(rawUrl)
 		return
@@ -47,7 +47,7 @@ func UseEndpoint(rawURL string) (err error) {
 	return
 }
 
-func WithRegistry(cfg *etcd.Config, opts ...RegistryOption) Option {
+func WithRegistry(cfg *etcd.Config, opts ...RegistryOption) ClientOption {
 	return func(c *clients.Client) error {
 		c.Reg = clients.NewRegistry(cfg)
 		for _, opt := range opts {
@@ -87,7 +87,7 @@ func WithPickRandom() RegistryOption {
 	return func(r *clients.Registry) { r.Lb = clients.RandLB() }
 }
 
-func WithHttpClient(h *http.Client) Option {
+func WithHttpClient(h *http.Client) ClientOption {
 	return func(c *clients.Client) error {
 		c.H = h
 		return nil

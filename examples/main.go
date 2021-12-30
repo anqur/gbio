@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/anqur/gbio"
+
 	"github.com/anqur/gbio/examples/hello"
 )
 
@@ -17,9 +19,8 @@ func (HelloService) SayHi(g hello.Greeting) *hello.Reply {
 }
 
 func main() {
-	if err := hello.
-		NewServer(new(HelloService), ":8080").
-		ListenAndServe(); err != nil {
+	gbio.UseMux(hello.Mux(new(HelloService)))
+	if err := gbio.ListenAndServe(); err != nil {
 		panic(err)
 	}
 }

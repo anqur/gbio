@@ -1,7 +1,7 @@
 package hello
 
 type BaseGreeting struct {
-	ReqID string `header:"x-request-id"`
+	ReqID string `json:"-"`
 }
 
 type JustHi struct {
