@@ -13,6 +13,8 @@ type helloMux struct {
 	s Hello
 }
 
+func (*helloMux) ServiceName() string { return "hello.Hello" }
+
 type discriminator struct {
 	Tag string `json:"_t"`
 }

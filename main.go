@@ -10,7 +10,12 @@ import (
 	"github.com/anqur/gbio/internal/registries"
 )
 
-var Err = errors.Err
+var (
+	Err = errors.Err
+
+	ErrRegistryEndpointNotFound = registries.ErrEndpointNotFound
+	ErrRegistryEmptyServiceInfo = registries.ErrEmptyServiceInfo
+)
 
 func UseErrorLogger(l *log.Logger) { loggers.Error = l }
 

@@ -11,3 +11,7 @@ type Server struct {
 
 	Reg *registries.Registry
 }
+
+type Service interface {
+	ServiceName() string
+}

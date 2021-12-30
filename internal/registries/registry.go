@@ -8,6 +8,7 @@ import (
 	"time"
 
 	etcd "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
 
 	"github.com/anqur/gbio/internal/errors"
 	"github.com/anqur/gbio/internal/loggers"
@@ -17,14 +18,17 @@ const DefaultPrefix = "gbio-"
 
 var (
 	ErrEndpointNotFound = fmt.Errorf("%w: endpoint not found", errors.Err)
+	ErrEmptyServiceInfo = fmt.Errorf("%w: empty service info", errors.Err)
 )
 
 type Registry struct {
 	C      *etcd.Config
 	Cp     func() context.Context
 	Prefix string
+	Tick   time.Duration
 
-	Cl *etcd.Client
+	cl *etcd.Client
+	tx *concurrency.Session
 }
 
 func NewRegistry(c *etcd.Config) *Registry {
@@ -32,17 +36,45 @@ func NewRegistry(c *etcd.Config) *Registry {
 		C:      c,
 		Cp:     context.Background,
 		Prefix: DefaultPrefix,
+		Tick:   30 * time.Second,
 	}
 }
 
 func (r *Registry) dial() (err error) {
-	r.Cl, err = etcd.New(*r.C)
+	r.cl, err = etcd.New(*r.C)
+	if err != nil {
+		return
+	}
+	ttl := int(r.Tick.Seconds())
+	r.tx, err = concurrency.NewSession(r.cl, concurrency.WithTTL(ttl))
 	return
 }
 
-// TODO: Put endpoint/service info to etcd.
+func (r *Registry) Register(serviceKey, serviceName string) error {
+	if serviceKey == "" || serviceName == "" {
+		return fmt.Errorf(
+			"%w: key=%q, name=%q",
+			ErrEmptyServiceInfo,
+			serviceKey,
+			serviceName,
+		)
+	}
+	prefixedKey := r.Prefix + serviceKey
+	_, err := r.tx.
+		Client().
+		Put(
+			r.Cp(),
+			prefixedKey,
+			serviceName,
+			etcd.WithLease(r.tx.Lease()),
+		)
+	return err
+}
 
-func (r *Registry) Close() error { return r.Cl.Close() }
+func (r *Registry) Close() error {
+	_ = r.tx.Close()
+	return r.cl.Close()
+}
 
 type EndpointKey string
 type EndpointList []string
@@ -52,11 +84,8 @@ type ServiceList []string
 type CachedRegistry struct {
 	*Registry
 
-	mu sync.RWMutex
-
-	Tick time.Duration
-	Lb   LB
-
+	mu        sync.RWMutex
+	Lb        LB
 	endpoints map[EndpointKey]ServiceList
 	services  map[ServiceKey]EndpointList
 }
@@ -64,9 +93,7 @@ type CachedRegistry struct {
 func NewCachedRegistry(c *etcd.Config) *CachedRegistry {
 	return &CachedRegistry{
 		Registry: NewRegistry(c),
-
-		Tick: 30 * time.Second,
-		Lb:   FirstLB(),
+		Lb:       FirstLB(),
 	}
 }
 
@@ -81,7 +108,7 @@ func (r *CachedRegistry) Started() bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.Cl != nil
+	return r.cl != nil
 }
 
 func (r *CachedRegistry) Start() error {
@@ -104,7 +131,7 @@ func (r *CachedRegistry) fetchOnce() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	resp, err := r.Cl.Get(r.Cp(), r.Prefix, etcd.WithPrefix())
+	resp, err := r.cl.Get(r.Cp(), r.Prefix, etcd.WithPrefix())
 	if err != nil {
 		loggers.Error.Println("Fetch services error:", err)
 		return
