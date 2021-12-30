@@ -1,4 +1,4 @@
-package clients
+package registries
 
 import (
 	"context"
@@ -13,54 +13,78 @@ import (
 	"github.com/anqur/gbio/internal/loggers"
 )
 
+const DefaultPrefix = "gbio-"
+
 var (
 	ErrEndpointNotFound = fmt.Errorf("%w: endpoint not found", errors.Err)
 )
+
+type Registry struct {
+	C      *etcd.Config
+	Cp     func() context.Context
+	Prefix string
+
+	Cl *etcd.Client
+}
+
+func NewRegistry(c *etcd.Config) *Registry {
+	return &Registry{
+		C:      c,
+		Cp:     context.Background,
+		Prefix: DefaultPrefix,
+	}
+}
+
+func (r *Registry) dial() (err error) {
+	r.Cl, err = etcd.New(*r.C)
+	return
+}
+
+// TODO: Put endpoint/service info to etcd.
+
+func (r *Registry) Close() error { return r.Cl.Close() }
 
 type EndpointKey string
 type EndpointList []string
 type ServiceKey string
 type ServiceList []string
 
-type Registry struct {
+type CachedRegistry struct {
+	*Registry
+
 	mu sync.RWMutex
 
-	C      *etcd.Config
-	Tick   time.Duration
-	Cp     func() context.Context
-	Prefix string
-	Lb     LB
+	Tick time.Duration
+	Lb   LB
 
-	cl        *etcd.Client
 	endpoints map[EndpointKey]ServiceList
 	services  map[ServiceKey]EndpointList
 }
 
-func NewRegistry(c *etcd.Config) *Registry {
-	return &Registry{
-		C:      c,
-		Tick:   30 * time.Second,
-		Cp:     context.Background,
-		Prefix: "gbio-",
-		Lb:     FirstLB(),
+func NewCachedRegistry(c *etcd.Config) *CachedRegistry {
+	return &CachedRegistry{
+		Registry: NewRegistry(c),
+
+		Tick: 30 * time.Second,
+		Lb:   FirstLB(),
 	}
 }
 
-func (r *Registry) Close() error {
+func (r *CachedRegistry) Close() error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.cl.Close()
+	return r.Registry.Close()
 }
 
-func (r *Registry) Started() bool {
+func (r *CachedRegistry) Started() bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.cl != nil
+	return r.Cl != nil
 }
 
-func (r *Registry) Start() error {
+func (r *CachedRegistry) Start() error {
 	if err := r.dial(); err != nil {
 		return err
 	}
@@ -69,19 +93,18 @@ func (r *Registry) Start() error {
 	return nil
 }
 
-func (r *Registry) dial() (err error) {
+func (r *CachedRegistry) dial() (err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.cl, err = etcd.New(*r.C)
-	return
+	return r.Registry.dial()
 }
 
-func (r *Registry) fetchOnce() {
+func (r *CachedRegistry) fetchOnce() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	resp, err := r.cl.Get(r.Cp(), r.Prefix, etcd.WithPrefix())
+	resp, err := r.Cl.Get(r.Cp(), r.Prefix, etcd.WithPrefix())
 	if err != nil {
 		loggers.Error.Println("Fetch services error:", err)
 		return
@@ -102,13 +125,13 @@ func (r *Registry) fetchOnce() {
 	}
 }
 
-func (r *Registry) runFetch() {
+func (r *CachedRegistry) runFetch() {
 	for range time.Tick(r.Tick) {
 		r.fetchOnce()
 	}
 }
 
-func (r *Registry) pick(k ServiceKey) (string, error) {
+func (r *CachedRegistry) pick(k ServiceKey) (string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -120,7 +143,7 @@ func (r *Registry) pick(k ServiceKey) (string, error) {
 	return r.Lb.Pick(ep), nil
 }
 
-func (r *Registry) PickUpstream(k ServiceKey) (string, error) {
+func (r *CachedRegistry) Lookup(k ServiceKey) (string, error) {
 	if !r.Started() {
 		if err := r.Start(); err != nil {
 			return "", nil

@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/anqur/gbio/internal/errors"
+	"github.com/anqur/gbio/internal/registries"
 )
 
 var (
@@ -15,7 +16,7 @@ var (
 type Client struct {
 	H   *http.Client
 	U   *url.URL
-	Reg *Registry
+	Reg *registries.CachedRegistry
 }
 
 func (c *Client) LookupEndpoint(serviceKey string) (string, error) {
@@ -23,7 +24,7 @@ func (c *Client) LookupEndpoint(serviceKey string) (string, error) {
 		return (&url.URL{Scheme: c.U.Scheme, Host: c.U.Host}).String(), nil
 	}
 	if c.Reg != nil {
-		return c.Reg.PickUpstream(ServiceKey(serviceKey))
+		return c.Reg.Lookup(registries.ServiceKey(serviceKey))
 	}
 	return "", ErrEndpointNotGiven
 }

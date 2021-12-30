@@ -1,4 +1,4 @@
-package clients
+package registries
 
 import (
 	"math/rand"
