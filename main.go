@@ -2,6 +2,7 @@ package gbio
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -12,6 +13,9 @@ import (
 
 var (
 	Err = errors.Err
+
+	ErrCodecBadMsgTag  = fmt.Errorf("%w: unknown message tag", errors.Err)
+	ErrCodecBadMsgType = fmt.Errorf("%w: unknown message type", errors.Err)
 
 	ErrRegistryEndpointNotFound = registries.ErrEndpointNotFound
 	ErrRegistryEmptyServiceInfo = registries.ErrEmptyServiceInfo

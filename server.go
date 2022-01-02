@@ -24,8 +24,8 @@ type Server struct {
 
 type ServerOption func(s *servers.Server)
 
-func NewServer(host string, opts ...ServerOption) (*Server, error) {
-	u, err := url.Parse(host)
+func NewServer(rawURL string, opts ...ServerOption) (*Server, error) {
+	u, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func NewServer(host string, opts ...ServerOption) (*Server, error) {
 	return &Server{u: u, s: s}, nil
 }
 
-var DefaultServer, _ = NewServer("localhost:8080")
+var DefaultServer, _ = NewServer("http://localhost:8080")
 
 func WithMux(m http.Handler) ServerOption {
 	return func(s *servers.Server) { s.Handler = m }

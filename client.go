@@ -1,6 +1,7 @@
 package gbio
 
 import (
+	"bytes"
 	"net/http"
 	"net/url"
 
@@ -80,3 +81,36 @@ func (c *Client) LookupEndpoint(serviceKey string) (string, error) {
 }
 
 func (c *Client) Close() error { return c.cl.Close() }
+
+type RequestEncoder interface {
+	Marshal() ([]byte, http.Header, error)
+}
+
+type Tx struct {
+	Cl    *Client
+	Error error
+}
+
+func (c *Tx) Request(k, path string, e RequestEncoder) (*http.Request, error) {
+	d, ctx, err := e.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := c.Cl.LookupEndpoint(k)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, u+path, bytes.NewReader(d))
+	if err != nil {
+		return nil, err
+	}
+	for k, vs := range ctx {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
+	}
+
+	return req, nil
+}

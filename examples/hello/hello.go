@@ -1,30 +1,40 @@
 package hello
 
-type BaseGreeting struct {
-	ReqID string `json:"-"`
-}
-
-type JustHi struct {
-	BaseGreeting
-}
-
 type SelfIntro struct {
-	BaseGreeting
-
 	Name string
 }
 
-type Greeting interface {
-	isGreeting()
+type ImAdmin struct {
+	Authorization string `json:"-"`
 }
 
-func (JustHi) isGreeting()    {}
-func (SelfIntro) isGreeting() {}
+type Code int
 
-type Reply struct {
-	Message string
+const (
+	OK Code = iota
+	InvalidParam
+	Unauthorized
+)
+
+type Reply interface{ isReply() }
+type OkReply struct{ Message string }
+type ErrReply struct {
+	Code  Code
+	Error string
+}
+
+func (OkReply) isReply()  {}
+func (ErrReply) isReply() {}
+
+type Greeting interface {
+	SayHi(*SelfIntro) *OkReply
+}
+
+type Admin interface {
+	HiAdmin(*ImAdmin) Reply
 }
 
 type Hello interface {
-	SayHi(Greeting) *Reply
+	Greeting
+	Admin
 }

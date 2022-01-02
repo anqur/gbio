@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/anqur/gbio"
 
@@ -10,12 +11,19 @@ import (
 
 type HelloService struct{}
 
-func (HelloService) SayHi(g hello.Greeting) *hello.Reply {
-	fmt.Printf("%+v\n", g)
-	if i, ok := g.(*hello.SelfIntro); ok {
-		return &hello.Reply{Message: fmt.Sprintf("Hi, %s!", i.Name)}
+func (HelloService) SayHi(i *hello.SelfIntro) *hello.OkReply {
+	return &hello.OkReply{Message: fmt.Sprintf("Hi, %s!", i.Name)}
+}
+
+func (HelloService) HiAdmin(i *hello.ImAdmin) hello.Reply {
+	tk := strings.TrimPrefix(i.Authorization, "Bearer ")
+	if tk != "s3cr3t" {
+		return &hello.ErrReply{
+			Code:  hello.Unauthorized,
+			Error: "nah you're not admin",
+		}
 	}
-	return &hello.Reply{Message: "Hi, stranger!"}
+	return &hello.OkReply{Message: "Hi, admin!"}
 }
 
 func main() {
