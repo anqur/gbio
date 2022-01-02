@@ -79,14 +79,13 @@ func (r *Registry) Close() error {
 type EndpointKey string
 type EndpointList []string
 type ServiceKey string
-type ServiceList []string
 
 type CachedRegistry struct {
 	*Registry
 
 	mu        sync.RWMutex
 	Lb        LB
-	endpoints map[EndpointKey]ServiceList
+	endpoints map[EndpointKey]ServiceKey
 	services  map[ServiceKey]EndpointList
 }
 
@@ -137,18 +136,14 @@ func (r *CachedRegistry) fetchOnce() {
 		return
 	}
 
-	r.endpoints = make(map[EndpointKey]ServiceList)
+	r.endpoints = make(map[EndpointKey]ServiceKey)
 	r.services = make(map[ServiceKey]EndpointList)
 
 	for _, kv := range resp.Kvs {
 		ep := strings.TrimPrefix(string(kv.Key), r.Prefix)
-		services := strings.Split(string(kv.Value), ",")
-
-		r.endpoints[EndpointKey(ep)] = services
-		for _, s := range services {
-			k := ServiceKey(s)
-			r.services[k] = append(r.services[k], ep)
-		}
+		srv := ServiceKey(kv.Value)
+		r.endpoints[EndpointKey(ep)] = srv
+		r.services[srv] = append(r.services[srv], ep)
 	}
 }
 

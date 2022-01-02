@@ -36,7 +36,7 @@ func NewServer(rawURL string, opts ...ServerOption) (*Server, error) {
 	return &Server{u: u, s: s}, nil
 }
 
-var DefaultServer, _ = NewServer("http://localhost:8080")
+var DefaultServer, _ = NewServer("http://0.0.0.0:8080")
 
 func WithMux(m http.Handler) ServerOption {
 	return func(s *servers.Server) { s.Handler = m }
