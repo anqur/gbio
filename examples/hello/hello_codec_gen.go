@@ -9,6 +9,8 @@ import (
 	"github.com/anqur/gbio"
 )
 
+const serviceKey = "hello.Hello"
+
 type Decoder struct {
 	r   io.ReadCloser
 	ctx http.Header

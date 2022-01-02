@@ -11,7 +11,7 @@ type helloMux struct {
 	s Hello
 }
 
-func (*helloMux) ServiceName() string { return "hello.Hello" }
+func (*helloMux) ServiceName() string { return serviceKey }
 
 type discriminator struct {
 	Tag string `json:"_t"`
@@ -69,8 +69,4 @@ func Mux(s Hello) http.Handler {
 		ok(w, d, ctx)
 	})
 	return d
-}
-
-func NewServer(s Hello, addr string) *http.Server {
-	return &http.Server{Addr: addr, Handler: Mux(s)}
 }

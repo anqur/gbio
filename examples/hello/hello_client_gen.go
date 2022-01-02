@@ -16,7 +16,7 @@ func With(cl *gbio.Client) *Tx { return &Tx{Tx: gbio.Tx{Cl: cl}} }
 
 func (c *Tx) SayHi(req *SelfIntro) *OkReply {
 	httpReq, err := c.Request(
-		"hello.Hello",
+		serviceKey,
 		"/Greeting/SayHi",
 		&SelfIntroEncoder{req},
 	)
@@ -42,7 +42,7 @@ func (c *Tx) SayHi(req *SelfIntro) *OkReply {
 
 func (c *Tx) HiAdmin(req *ImAdmin) Reply {
 	httpReq, err := c.Request(
-		"hello.Hello",
+		serviceKey,
 		"/Admin/HiAdmin",
 		&ImAdminEncoder{req},
 	)
