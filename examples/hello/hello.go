@@ -16,15 +16,15 @@ const (
 	Unauthorized
 )
 
-type Reply interface{ isReply() }
+type Reply interface{ isReply() int }
 type OkReply struct{ Message string }
 type ErrReply struct {
 	Code  Code
 	Error string
 }
 
-func (OkReply) isReply()  {}
-func (ErrReply) isReply() {}
+func (OkReply) isReply() int  { return 1 }
+func (ErrReply) isReply() int { return 2 }
 
 type Greeting interface {
 	SayHi(*SelfIntro) *OkReply

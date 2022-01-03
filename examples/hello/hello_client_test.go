@@ -1,7 +1,6 @@
 package hello_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/anqur/gbio/examples/hello"
@@ -13,7 +12,9 @@ func TestSayHi(t *testing.T) {
 	if err := tx.Error; err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(r.Message)
+	if r.Message != "Hi, Anqur!" {
+		t.Fatal(r)
+	}
 }
 
 func TestHiAdminOK(t *testing.T) {
@@ -26,7 +27,9 @@ func TestHiAdminOK(t *testing.T) {
 	if !ok {
 		t.Fatal(r)
 	}
-	fmt.Println(m.Message)
+	if m.Message != "Hi, admin!" {
+		t.Fatal(m)
+	}
 }
 
 func TestHiAdminFailed(t *testing.T) {
@@ -39,5 +42,7 @@ func TestHiAdminFailed(t *testing.T) {
 	if !ok {
 		t.Fatal(r)
 	}
-	fmt.Println(e.Code, e.Error)
+	if e.Code != hello.Unauthorized {
+		t.Fatal(e)
+	}
 }

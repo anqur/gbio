@@ -157,12 +157,15 @@ func (r *CachedRegistry) pick(k ServiceKey) (string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	ep, ok := r.services[k]
-	if !ok || len(ep) == 0 {
+	eps, ok := r.services[k]
+	if !ok || len(eps) == 0 {
 		return "", fmt.Errorf("%w: %q", ErrEndpointNotFound, k)
 	}
+	if len(eps) == 1 {
+		return eps[0], nil
+	}
 
-	return r.Lb.Pick(ep), nil
+	return r.Lb.Pick(eps), nil
 }
 
 func (r *CachedRegistry) Lookup(k ServiceKey) (string, error) {

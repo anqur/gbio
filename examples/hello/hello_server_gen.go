@@ -13,10 +13,6 @@ type helloMux struct {
 
 func (*helloMux) ServiceName() string { return serviceKey }
 
-type discriminator struct {
-	Tag string `json:"_t"`
-}
-
 func internalServerError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 	_, _ = w.Write([]byte(fmt.Sprintf("%q", err.Error())))
