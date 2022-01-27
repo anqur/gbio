@@ -3,66 +3,77 @@ package hello
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/anqur/gbio"
+	"github.com/anqur/gbio/logging"
 )
 
-type helloMux struct {
-	http.ServeMux
-
-	s Hello
-}
-
-func (*helloMux) ServiceName() string { return serviceKey }
-
 func internalServerError(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	_, _ = w.Write([]byte(fmt.Sprintf("%q", err.Error())))
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
 func ok(w http.ResponseWriter, d []byte, ctx http.Header) {
 	w.Header().Add("Content-Type", "application/json")
-	_, _ = w.Write(d)
 	for k, vs := range ctx {
 		for _, v := range vs {
 			w.Header().Add(k, v)
 		}
 	}
+	_, _ = w.Write(d)
 }
 
-func (d *helloMux) SayHi(r *SelfIntro) *OkReply {
-	return d.s.SayHi(r)
-}
+func RegisterGreeting(i Greeting, opts ...gbio.EndpointOption) gbio.ServerOption {
+	ep := new(gbio.ServerEndpoint)
+	ep.Tag = gbio.DefaultTag
 
-func (d *helloMux) HiAdmin(r *ImAdmin) Reply {
-	return d.s.HiAdmin(r)
-}
+	for _, opt := range opts {
+		opt(&ep.Endpoint)
+	}
 
-func Mux(s Hello) http.Handler {
-	d := &helloMux{s: s}
-	d.HandleFunc("/Greeting/SayHi", func(w http.ResponseWriter, r *http.Request) {
+	ep.Name = fmt.Sprintf("hello.Greeting/%s", ep.Tag)
+	ep.BaseURI = fmt.Sprintf("/Greeting/%s/SayHi", ep.Tag)
+	ep.Handler = func(w http.ResponseWriter, r *http.Request) {
 		req, err := NewDecoder(r.Body, r.Header).SelfIntro()
 		if err != nil {
 			internalServerError(w, err)
 			return
 		}
-		d, ctx, err := (&OkReplyEncoder{d.s.SayHi(req)}).Marshal()
+		d, ctx, err := (&OkReplyEncoder{i.SayHi(req)}).Marshal()
 		if err != nil {
 			internalServerError(w, err)
 			return
 		}
 		ok(w, d, ctx)
-	})
-	d.HandleFunc("/Admin/HiAdmin", func(w http.ResponseWriter, r *http.Request) {
+		logging.Info.Println("Access:", r.RemoteAddr, r.RequestURI)
+	}
+
+	return func(s *gbio.Server) { s.Register(ep) }
+}
+
+func RegisterAdmin(i Admin, opts ...gbio.EndpointOption) gbio.ServerOption {
+	ep := new(gbio.ServerEndpoint)
+	ep.Tag = gbio.DefaultTag
+
+	for _, opt := range opts {
+		opt(&ep.Endpoint)
+	}
+
+	ep.Name = fmt.Sprintf("hello.Admin/%s", ep.Tag)
+	ep.BaseURI = fmt.Sprintf("/Admin/%s/HiAdmin", ep.Tag)
+	ep.Handler = func(w http.ResponseWriter, r *http.Request) {
 		req, err := NewDecoder(r.Body, r.Header).ImAdmin()
 		if err != nil {
 			internalServerError(w, err)
 			return
 		}
-		d, ctx, err := (&ReplyEncoder{d.s.HiAdmin(req)}).Marshal()
+		d, ctx, err := (&ReplyEncoder{i.HiAdmin(req)}).Marshal()
 		if err != nil {
 			internalServerError(w, err)
 			return
 		}
 		ok(w, d, ctx)
-	})
-	return d
+		logging.Info.Println("Access:", r.RemoteAddr, r.RequestURI)
+	}
+
+	return func(s *gbio.Server) { s.Register(ep) }
 }

@@ -8,6 +8,7 @@ import (
 	etcd "go.etcd.io/etcd/client/v3"
 
 	"github.com/anqur/gbio/internal/clients"
+	"github.com/anqur/gbio/internal/endpoints"
 	"github.com/anqur/gbio/internal/registries"
 )
 
@@ -16,13 +17,18 @@ var (
 )
 
 type Client struct {
+	Tag string
+
 	cl clients.Client
 }
 
 type ClientOption func(c *clients.Client) error
 
 func NewClient(opts ...ClientOption) (c *Client, err error) {
-	c = new(Client)
+	c = &Client{
+		Tag: DefaultTag,
+		cl:  clients.Client{H: http.DefaultClient},
+	}
 	for _, opt := range opts {
 		if err = opt(&c.cl); err != nil {
 			return
@@ -31,20 +37,22 @@ func NewClient(opts ...ClientOption) (c *Client, err error) {
 	return
 }
 
-var DefaultClient, _ = NewClient(
-	WithHttpClient(http.DefaultClient),
-	WithEndpoint("http://localhost:8080"),
-)
+func UseClient(opts ...ClientOption) error {
+	for _, opt := range opts {
+		if err := opt(&DefaultClient.cl); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var DefaultClient, _ = NewClient(WithEndpoint("http://localhost:8080"))
 
 func WithEndpoint(rawUrl string) ClientOption {
 	return func(c *clients.Client) (err error) {
 		c.U, err = url.Parse(rawUrl)
 		return
 	}
-}
-func UseEndpoint(rawURL string) (err error) {
-	DefaultClient.cl.U, err = url.Parse(rawURL)
-	return
 }
 
 func WithLookupRegistry(
@@ -59,12 +67,6 @@ func WithLookupRegistry(
 		return nil
 	}
 }
-func UseLookupRegistry(c *etcd.Config, opts ...LookupRegistryOption) {
-	DefaultClient.cl.Reg = registries.NewCachedRegistry(c)
-	for _, opt := range opts {
-		opt(DefaultClient.cl.Reg)
-	}
-}
 
 func WithHttpClient(h *http.Client) ClientOption {
 	return func(c *clients.Client) error {
@@ -72,32 +74,16 @@ func WithHttpClient(h *http.Client) ClientOption {
 		return nil
 	}
 }
-func UseHttpClient(h *http.Client) { DefaultClient.cl.H = h }
 
 func (c *Client) HttpClient() *http.Client { return c.cl.H }
 
-func (c *Client) LookupEndpoint(serviceKey string) (string, error) {
-	return c.cl.LookupEndpoint(serviceKey)
-}
-
-func (c *Client) Close() error { return c.cl.Close() }
-
-type RequestEncoder interface {
-	Marshal() ([]byte, http.Header, error)
-}
-
-type Tx struct {
-	Cl    *Client
-	Error error
-}
-
-func (c *Tx) Request(k, path string, e RequestEncoder) (*http.Request, error) {
+func (c *Client) Request(k, path string, e RequestEncoder) (*http.Request, error) {
 	d, ctx, err := e.Marshal()
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := c.Cl.LookupEndpoint(k)
+	u, err := c.cl.LookupEndpoint(k)
 	if err != nil {
 		return nil, err
 	}
@@ -113,4 +99,16 @@ func (c *Tx) Request(k, path string, e RequestEncoder) (*http.Request, error) {
 	}
 
 	return req, nil
+}
+
+func (c *Client) Close() error { return c.cl.Close() }
+
+type RequestEncoder interface {
+	Marshal() ([]byte, http.Header, error)
+}
+
+type ClientEndpoint struct {
+	endpoints.Endpoint
+	Cl    *Client
+	Error error
 }

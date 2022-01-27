@@ -3,11 +3,10 @@ package gbio
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
+	"github.com/anqur/gbio/internal/endpoints"
 	"github.com/anqur/gbio/internal/errors"
-	"github.com/anqur/gbio/internal/loggers"
 	"github.com/anqur/gbio/internal/registries"
 )
 
@@ -21,19 +20,14 @@ var (
 	ErrRegistryEmptyServiceInfo = registries.ErrEmptyServiceInfo
 )
 
-func UseErrorLogger(l *log.Logger) { loggers.Error = l }
-
-type (
-	LookupRegistryOption func(r *registries.CachedRegistry)
-	ContextProvider      = func() context.Context
-)
+type LookupRegistryOption func(r *registries.CachedRegistry)
 
 func WithTick(d time.Duration) LookupRegistryOption {
 	return func(r *registries.CachedRegistry) { r.Tick = d }
 }
 
-func WithLookupContext(f ContextProvider) LookupRegistryOption {
-	return func(r *registries.CachedRegistry) { r.Cp = f }
+func WithLookupContext(ctx context.Context) LookupRegistryOption {
+	return func(r *registries.CachedRegistry) { r.Ctx = ctx }
 }
 
 func WithLookupPrefix(p string) LookupRegistryOption {
@@ -50,10 +44,18 @@ func WithPickRandom() LookupRegistryOption {
 
 type ServiceRegistryOption func(r *registries.Registry)
 
-func WithServiceContext(f ContextProvider) ServiceRegistryOption {
-	return func(r *registries.Registry) { r.Cp = f }
+func WithServiceContext(ctx context.Context) ServiceRegistryOption {
+	return func(r *registries.Registry) { r.Ctx = ctx }
 }
 
 func WithServicePrefix(p string) ServiceRegistryOption {
 	return func(r *registries.Registry) { r.Prefix = p }
+}
+
+type EndpointOption func(s *endpoints.Endpoint)
+
+const DefaultTag = "v1"
+
+func WithTag(tag string) EndpointOption {
+	return func(s *endpoints.Endpoint) { s.Tag = tag }
 }

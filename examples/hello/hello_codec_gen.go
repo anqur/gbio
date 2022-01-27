@@ -9,8 +9,6 @@ import (
 	"github.com/anqur/gbio"
 )
 
-const serviceKey = "hello.Hello"
-
 type tagger struct {
 	Tag int `json:"_t"`
 }

@@ -9,13 +9,21 @@ import (
 	"github.com/anqur/gbio/examples/hello"
 )
 
-type HelloService struct{}
+type Greeting struct{}
 
-func (HelloService) SayHi(i *hello.SelfIntro) *hello.OkReply {
+func (Greeting) SayHi(i *hello.SelfIntro) *hello.OkReply {
 	return &hello.OkReply{Message: fmt.Sprintf("Hi, %s!", i.Name)}
 }
 
-func (HelloService) HiAdmin(i *hello.ImAdmin) hello.Reply {
+type GreetingV2 struct{}
+
+func (GreetingV2) SayHi(i *hello.SelfIntro) *hello.OkReply {
+	return &hello.OkReply{Message: fmt.Sprintf("Aloha, %s!", i.Name)}
+}
+
+type Admin struct{}
+
+func (Admin) HiAdmin(i *hello.ImAdmin) hello.Reply {
 	tk := strings.TrimPrefix(i.Authorization, "Bearer ")
 	if tk != "s3cr3t" {
 		return &hello.ErrReply{
@@ -27,7 +35,11 @@ func (HelloService) HiAdmin(i *hello.ImAdmin) hello.Reply {
 }
 
 func main() {
-	gbio.UseMux(hello.Mux(new(HelloService)))
+	gbio.UseServer(
+		hello.RegisterGreeting(new(Greeting)),
+		hello.RegisterGreeting(new(GreetingV2), gbio.WithTag("v2")),
+		hello.RegisterAdmin(new(Admin)),
+	)
 	if err := gbio.ListenAndServe(); err != nil {
 		panic(err)
 	}

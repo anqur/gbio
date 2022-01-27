@@ -24,7 +24,7 @@ func (c *Client) LookupEndpoint(serviceKey string) (string, error) {
 		return (&url.URL{Scheme: c.U.Scheme, Host: c.U.Host}).String(), nil
 	}
 	if c.Reg != nil {
-		return c.Reg.Lookup(registries.ServiceKey(serviceKey))
+		return c.Reg.Lookup(registries.EndpointName(serviceKey))
 	}
 	return "", ErrEndpointNotGiven
 }

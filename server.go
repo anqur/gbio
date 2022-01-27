@@ -5,76 +5,86 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/anqur/gbio/logging"
 	etcd "go.etcd.io/etcd/client/v3"
 
-	"github.com/anqur/gbio/internal/errors"
+	"github.com/anqur/gbio/internal/endpoints"
 	"github.com/anqur/gbio/internal/registries"
-	"github.com/anqur/gbio/internal/servers"
 	"github.com/anqur/gbio/internal/utils"
 )
 
-var (
-	ErrServerNotService = fmt.Errorf("%w: not a service, you might forget the codegen", errors.Err)
-)
-
 type Server struct {
-	u *url.URL
-	s *servers.Server
+	u   *url.URL
+	m   *http.ServeMux
+	s   http.Server
+	eps map[string]*ServerEndpoint
+	reg *registries.Registry
 }
 
-type ServerOption func(s *servers.Server)
+type ServerOption func(s *Server)
 
 func NewServer(rawURL string, opts ...ServerOption) (*Server, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
 	}
-	s := &servers.Server{Server: http.Server{Addr: u.Host}}
+	m := new(http.ServeMux)
+	s := &Server{
+		u: u,
+		m: m,
+		s: http.Server{
+			Addr:    u.Host,
+			Handler: m,
+		},
+		eps: make(map[string]*ServerEndpoint),
+	}
 	for _, opt := range opts {
 		opt(s)
 	}
-	return &Server{u: u, s: s}, nil
+	return s, nil
+}
+
+func UseServer(opts ...ServerOption) {
+	for _, opt := range opts {
+		opt(DefaultServer)
+	}
 }
 
 var DefaultServer, _ = NewServer("http://0.0.0.0:8080")
-
-func WithMux(m http.Handler) ServerOption {
-	return func(s *servers.Server) { s.Handler = m }
-}
-func UseMux(m http.Handler) { DefaultServer.s.Handler = m }
 
 func WithServiceRegistry(
 	cfg *etcd.Config,
 	opts ...ServiceRegistryOption,
 ) ServerOption {
-	return func(s *servers.Server) {
-		s.Reg = registries.NewRegistry(cfg)
+	return func(s *Server) {
+		s.reg = registries.NewRegistry(cfg)
 		for _, opt := range opts {
-			opt(s.Reg)
+			opt(s.reg)
 		}
 	}
 }
-func UseServiceRegistry(c *etcd.Config, opts ...ServiceRegistryOption) {
-	DefaultServer.s.Reg = registries.NewRegistry(c)
-	for _, opt := range opts {
-		opt(DefaultServer.s.Reg)
-	}
-}
-
-func UseAddr(addr string) { DefaultServer.s.Addr = addr }
 
 func ListenAndServe() error { return DefaultServer.ListenAndServe() }
 
 func (s *Server) ListenAndServe() error {
-	if s.s.Reg != nil {
-		if err := s.Register(); err != nil {
+	for _, srv := range s.eps {
+		logging.Info.Println("Registering:", srv.Name, srv.BaseURI)
+		s.m.HandleFunc(srv.BaseURI, srv.Handler)
+	}
+	if s.reg != nil {
+		if err := s.registerServer(); err != nil {
 			return err
 		}
 	}
+	logging.Info.Println("Listening:", s.s.Addr)
 	return s.s.ListenAndServe()
 }
 
-func (s *Server) Addr() (string, error) {
+func (s *Server) Register(srv *ServerEndpoint) {
+	s.eps[srv.Name] = srv
+}
+
+func (s *Server) serverAddr() (string, error) {
 	ip, err := utils.GetIPv4()
 	if err != nil {
 		return "", err
@@ -86,14 +96,20 @@ func (s *Server) Addr() (string, error) {
 	return fmt.Sprintf("%s:%s", ip, port), nil
 }
 
-func (s *Server) Register() error {
-	srv, ok := s.s.Handler.(servers.Service)
-	if !ok {
-		return ErrServerNotService
-	}
-	addr, err := s.Addr()
+func (s *Server) registerServer() error {
+	addr, err := s.serverAddr()
 	if err != nil {
 		return nil
 	}
-	return s.s.Reg.Register(addr, srv.ServiceName())
+	var eps []*endpoints.Endpoint
+	for _, ep := range s.eps {
+		eps = append(eps, &ep.Endpoint)
+	}
+	return s.reg.Register(addr, eps)
+}
+
+type ServerEndpoint struct {
+	endpoints.Endpoint
+
+	Handler http.HandlerFunc
 }

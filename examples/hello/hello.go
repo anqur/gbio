@@ -33,8 +33,3 @@ type Greeting interface {
 type Admin interface {
 	HiAdmin(*ImAdmin) Reply
 }
-
-type Hello interface {
-	Greeting
-	Admin
-}

@@ -3,11 +3,13 @@ package hello_test
 import (
 	"testing"
 
+	"github.com/anqur/gbio"
+
 	"github.com/anqur/gbio/examples/hello"
 )
 
 func TestSayHi(t *testing.T) {
-	tx := hello.Do()
+	tx := hello.Tx.Greeting()
 	r := tx.SayHi(&hello.SelfIntro{Name: "Anqur"})
 	if err := tx.Error; err != nil {
 		t.Fatal(err)
@@ -17,8 +19,19 @@ func TestSayHi(t *testing.T) {
 	}
 }
 
+func TestSayHiV2(t *testing.T) {
+	tx := hello.Tx.Greeting(gbio.WithTag("v2"))
+	r := tx.SayHi(&hello.SelfIntro{Name: "Anqur"})
+	if err := tx.Error; err != nil {
+		t.Fatal(err)
+	}
+	if r.Message != "Aloha, Anqur!" {
+		t.Fatal(r)
+	}
+}
+
 func TestHiAdminOK(t *testing.T) {
-	tx := hello.Do()
+	tx := hello.Tx.Admin()
 	r := tx.HiAdmin(&hello.ImAdmin{Authorization: "Bearer s3cr3t"})
 	if err := tx.Error; err != nil {
 		t.Fatal(err)
@@ -33,7 +46,7 @@ func TestHiAdminOK(t *testing.T) {
 }
 
 func TestHiAdminFailed(t *testing.T) {
-	tx := hello.Do()
+	tx := hello.Tx.Admin()
 	r := tx.HiAdmin(new(hello.ImAdmin))
 	if err := tx.Error; err != nil {
 		t.Fatal(err)

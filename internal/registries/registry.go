@@ -2,16 +2,18 @@ package registries
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/anqur/gbio/logging"
 	etcd "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 
+	"github.com/anqur/gbio/internal/endpoints"
 	"github.com/anqur/gbio/internal/errors"
-	"github.com/anqur/gbio/internal/loggers"
 )
 
 const DefaultPrefix = "gbio-"
@@ -23,7 +25,7 @@ var (
 
 type Registry struct {
 	C      *etcd.Config
-	Cp     func() context.Context
+	Ctx    context.Context
 	Prefix string
 	Tick   time.Duration
 
@@ -34,7 +36,7 @@ type Registry struct {
 func NewRegistry(c *etcd.Config) *Registry {
 	return &Registry{
 		C:      c,
-		Cp:     context.Background,
+		Ctx:    context.Background(),
 		Prefix: DefaultPrefix,
 		Tick:   30 * time.Second,
 	}
@@ -50,22 +52,25 @@ func (r *Registry) dial() (err error) {
 	return
 }
 
-func (r *Registry) Register(serviceKey, serviceName string) error {
-	if serviceKey == "" || serviceName == "" {
+func (r *Registry) Register(addr string, eps []*endpoints.Endpoint) error {
+	if addr == "" || eps == nil {
 		return fmt.Errorf(
-			"%w: key=%q, name=%q",
+			"%w: addr=%q, endpoints=%q",
 			ErrEmptyServiceInfo,
-			serviceKey,
-			serviceName,
+			addr,
+			eps,
 		)
 	}
-	prefixedKey := r.Prefix + serviceKey
-	_, err := r.tx.
+	vals, err := json.Marshal(eps)
+	if err != nil {
+		return err
+	}
+	_, err = r.tx.
 		Client().
 		Put(
-			r.Cp(),
-			prefixedKey,
-			serviceName,
+			r.Ctx,
+			r.Prefix+addr,
+			string(vals),
 			etcd.WithLease(r.tx.Lease()),
 		)
 	return err
@@ -76,17 +81,17 @@ func (r *Registry) Close() error {
 	return r.cl.Close()
 }
 
-type EndpointKey string
-type EndpointList []string
-type ServiceKey string
+type NodeAddr string
+type NodeList []string
+type EndpointName string
 
 type CachedRegistry struct {
 	*Registry
 
-	mu        sync.RWMutex
-	Lb        LB
-	endpoints map[EndpointKey]ServiceKey
-	services  map[ServiceKey]EndpointList
+	mu    sync.RWMutex
+	Lb    LB
+	nodes map[NodeAddr][]*endpoints.Endpoint
+	eps   map[EndpointName]NodeList
 }
 
 func NewCachedRegistry(c *etcd.Config) *CachedRegistry {
@@ -130,20 +135,27 @@ func (r *CachedRegistry) fetchOnce() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	resp, err := r.cl.Get(r.Cp(), r.Prefix, etcd.WithPrefix())
+	resp, err := r.cl.Get(r.Ctx, r.Prefix, etcd.WithPrefix())
 	if err != nil {
-		loggers.Error.Println("Fetch services error:", err)
+		logging.Error.Println("Fetch endpoints error:", err)
 		return
 	}
 
-	r.endpoints = make(map[EndpointKey]ServiceKey)
-	r.services = make(map[ServiceKey]EndpointList)
+	r.nodes = make(map[NodeAddr][]*endpoints.Endpoint)
+	r.eps = make(map[EndpointName]NodeList)
 
 	for _, kv := range resp.Kvs {
-		ep := strings.TrimPrefix(string(kv.Key), r.Prefix)
-		srv := ServiceKey(kv.Value)
-		r.endpoints[EndpointKey(ep)] = srv
-		r.services[srv] = append(r.services[srv], ep)
+		node := strings.TrimPrefix(string(kv.Key), r.Prefix)
+		var eps []*endpoints.Endpoint
+		if err := json.Unmarshal(kv.Value, &eps); err != nil {
+			logging.Error.Println("Unmarshal endpoints error:", err)
+			return
+		}
+		r.nodes[NodeAddr(node)] = eps
+		for _, ep := range eps {
+			n := EndpointName(ep.Name)
+			r.eps[n] = append(r.eps[n], node)
+		}
 	}
 }
 
@@ -153,11 +165,11 @@ func (r *CachedRegistry) runFetch() {
 	}
 }
 
-func (r *CachedRegistry) pick(k ServiceKey) (string, error) {
+func (r *CachedRegistry) pick(k EndpointName) (string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	eps, ok := r.services[k]
+	eps, ok := r.eps[k]
 	if !ok || len(eps) == 0 {
 		return "", fmt.Errorf("%w: %q", ErrEndpointNotFound, k)
 	}
@@ -168,7 +180,7 @@ func (r *CachedRegistry) pick(k ServiceKey) (string, error) {
 	return r.Lb.Pick(eps), nil
 }
 
-func (r *CachedRegistry) Lookup(k ServiceKey) (string, error) {
+func (r *CachedRegistry) Lookup(k EndpointName) (string, error) {
 	if !r.Started() {
 		if err := r.Start(); err != nil {
 			return "", nil
