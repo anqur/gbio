@@ -17,18 +17,13 @@ var (
 )
 
 type Client struct {
-	Tag string
-
 	cl clients.Client
 }
 
 type ClientOption func(c *clients.Client) error
 
 func NewClient(opts ...ClientOption) (c *Client, err error) {
-	c = &Client{
-		Tag: DefaultTag,
-		cl:  clients.Client{H: http.DefaultClient},
-	}
+	c = &Client{cl: clients.Client{H: http.DefaultClient}}
 	for _, opt := range opts {
 		if err = opt(&c.cl); err != nil {
 			return
