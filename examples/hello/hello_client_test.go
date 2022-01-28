@@ -3,7 +3,7 @@ package hello_test
 import (
 	"testing"
 
-	"github.com/anqur/gbio"
+	"github.com/anqur/gbio/endpoints"
 
 	"github.com/anqur/gbio/examples/hello"
 )
@@ -20,7 +20,7 @@ func TestSayHi(t *testing.T) {
 }
 
 func TestSayHiV2(t *testing.T) {
-	tx := hello.Tx.Greeting(gbio.WithTag("v2"))
+	tx := hello.Tx.Greeting(endpoints.WithTag("v2"))
 	r := tx.SayHi(&hello.SelfIntro{Name: "Anqur"})
 	if err := tx.Error; err != nil {
 		t.Fatal(err)

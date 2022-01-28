@@ -1,6 +1,7 @@
-package gbio
+package servers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,13 +18,13 @@ type Server struct {
 	u   *url.URL
 	m   *http.ServeMux
 	s   http.Server
-	eps map[string]*ServerEndpoint
+	eps map[string]*Endpoint
 	reg *registries.Registry
 }
 
-type ServerOption func(s *Server)
+type Option func(s *Server)
 
-func NewServer(rawURL string, opts ...ServerOption) (*Server, error) {
+func New(rawURL string, opts ...Option) (*Server, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
@@ -36,7 +37,7 @@ func NewServer(rawURL string, opts ...ServerOption) (*Server, error) {
 			Addr:    u.Host,
 			Handler: m,
 		},
-		eps: make(map[string]*ServerEndpoint),
+		eps: make(map[string]*Endpoint),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -44,27 +45,27 @@ func NewServer(rawURL string, opts ...ServerOption) (*Server, error) {
 	return s, nil
 }
 
-func UseServer(opts ...ServerOption) {
+func Use(opts ...Option) {
 	for _, opt := range opts {
-		opt(DefaultServer)
+		opt(Default)
 	}
 }
 
-var DefaultServer, _ = NewServer("http://0.0.0.0:8080")
+var Default, _ = New("http://0.0.0.0:8080")
 
-func WithServiceRegistry(
+func WithRegistry(
 	cfg *etcd.Config,
-	opts ...ServiceRegistryOption,
-) ServerOption {
+	opts ...RegistryOption,
+) Option {
 	return func(s *Server) {
-		s.reg = registries.NewRegistry(cfg)
+		s.reg = registries.New(cfg)
 		for _, opt := range opts {
 			opt(s.reg)
 		}
 	}
 }
 
-func ListenAndServe() error { return DefaultServer.ListenAndServe() }
+func ListenAndServe() error { return Default.ListenAndServe() }
 
 func (s *Server) ListenAndServe() error {
 	for _, srv := range s.eps {
@@ -80,7 +81,7 @@ func (s *Server) ListenAndServe() error {
 	return s.s.ListenAndServe()
 }
 
-func (s *Server) Register(srv *ServerEndpoint) {
+func (s *Server) Register(srv *Endpoint) {
 	s.eps[srv.Name] = srv
 }
 
@@ -108,8 +109,17 @@ func (s *Server) registerServer() error {
 	return s.reg.Register(addr, eps)
 }
 
-type ServerEndpoint struct {
+type Endpoint struct {
 	endpoints.Endpoint
-
 	Handler http.HandlerFunc
+}
+
+type RegistryOption func(r *registries.Registry)
+
+func WithContext(ctx context.Context) RegistryOption {
+	return func(r *registries.Registry) { r.Ctx = ctx }
+}
+
+func WithPrefix(p string) RegistryOption {
+	return func(r *registries.Registry) { r.Prefix = p }
 }

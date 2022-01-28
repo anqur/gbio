@@ -9,19 +9,14 @@ import (
 	"time"
 
 	"github.com/anqur/gbio/logging"
+	"github.com/anqur/gbio/registries"
 	etcd "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 
 	"github.com/anqur/gbio/internal/endpoints"
-	"github.com/anqur/gbio/internal/errors"
 )
 
 const DefaultPrefix = "gbio-"
-
-var (
-	ErrEndpointNotFound = fmt.Errorf("%w: endpoint not found", errors.Err)
-	ErrEmptyServiceInfo = fmt.Errorf("%w: empty service info", errors.Err)
-)
 
 type Registry struct {
 	C      *etcd.Config
@@ -33,7 +28,7 @@ type Registry struct {
 	tx *concurrency.Session
 }
 
-func NewRegistry(c *etcd.Config) *Registry {
+func New(c *etcd.Config) *Registry {
 	return &Registry{
 		C:      c,
 		Ctx:    context.Background(),
@@ -56,7 +51,7 @@ func (r *Registry) Register(addr string, eps []*endpoints.Endpoint) error {
 	if addr == "" || eps == nil {
 		return fmt.Errorf(
 			"%w: addr=%q, endpoints=%q",
-			ErrEmptyServiceInfo,
+			registries.ErrEmptyEndpoints,
 			addr,
 			eps,
 		)
@@ -81,9 +76,11 @@ func (r *Registry) Close() error {
 	return r.cl.Close()
 }
 
-type NodeAddr string
-type NodeList []string
-type EndpointName string
+type (
+	NodeAddr     string
+	NodeList     []string
+	EndpointName string
+)
 
 type CachedRegistry struct {
 	*Registry
@@ -94,9 +91,9 @@ type CachedRegistry struct {
 	eps   map[EndpointName]NodeList
 }
 
-func NewCachedRegistry(c *etcd.Config) *CachedRegistry {
+func NewCached(c *etcd.Config) *CachedRegistry {
 	return &CachedRegistry{
-		Registry: NewRegistry(c),
+		Registry: New(c),
 		Lb:       FirstLB(),
 	}
 }
@@ -171,7 +168,7 @@ func (r *CachedRegistry) pick(k EndpointName) (string, error) {
 
 	eps, ok := r.eps[k]
 	if !ok || len(eps) == 0 {
-		return "", fmt.Errorf("%w: %q", ErrEndpointNotFound, k)
+		return "", fmt.Errorf("%w: %q", registries.ErrEndpointNotFound, k)
 	}
 	if len(eps) == 1 {
 		return eps[0], nil

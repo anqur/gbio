@@ -3,23 +3,24 @@ package hello
 import (
 	"fmt"
 
-	"github.com/anqur/gbio"
+	"github.com/anqur/gbio/clients"
+	"github.com/anqur/gbio/endpoints"
 )
 
 type (
-	tx struct{ cl *gbio.Client }
+	tx struct{ cl *clients.Client }
 
-	greetingTx struct{ *gbio.ClientEndpoint }
-	adminTx    struct{ *gbio.ClientEndpoint }
+	greetingTx struct{ *clients.Endpoint }
+	adminTx    struct{ *clients.Endpoint }
 )
 
-var Tx = &tx{cl: gbio.DefaultClient}
+var Tx = &tx{cl: clients.Default}
 
-func With(cl *gbio.Client) *tx { return &tx{cl: cl} }
+func With(cl *clients.Client) *tx { return &tx{cl: cl} }
 
-func (t *tx) Greeting(opts ...gbio.EndpointOption) *greetingTx {
-	ep := &gbio.ClientEndpoint{Cl: t.cl}
-	ep.Tag = gbio.DefaultTag
+func (t *tx) Greeting(opts ...endpoints.Option) *greetingTx {
+	ep := &clients.Endpoint{Cl: t.cl}
+	ep.Tag = endpoints.DefaultTag
 
 	for _, opt := range opts {
 		opt(&ep.Endpoint)
@@ -27,12 +28,12 @@ func (t *tx) Greeting(opts ...gbio.EndpointOption) *greetingTx {
 
 	ep.Name = fmt.Sprintf("hello.Greeting/%s", ep.Tag)
 	ep.BaseURI = fmt.Sprintf("/Greeting/%s/SayHi", ep.Tag)
-	return &greetingTx{ClientEndpoint: ep}
+	return &greetingTx{Endpoint: ep}
 }
 
-func (t *tx) Admin(opts ...gbio.EndpointOption) *adminTx {
-	ep := &gbio.ClientEndpoint{Cl: t.cl}
-	ep.Tag = gbio.DefaultTag
+func (t *tx) Admin(opts ...endpoints.Option) *adminTx {
+	ep := &clients.Endpoint{Cl: t.cl}
+	ep.Tag = endpoints.DefaultTag
 
 	for _, opt := range opts {
 		opt(&ep.Endpoint)
@@ -40,7 +41,7 @@ func (t *tx) Admin(opts ...gbio.EndpointOption) *adminTx {
 
 	ep.Name = fmt.Sprintf("hello.Admin/%s", ep.Tag)
 	ep.BaseURI = fmt.Sprintf("/Admin/%s/HiAdmin", ep.Tag)
-	return &adminTx{ClientEndpoint: ep}
+	return &adminTx{Endpoint: ep}
 }
 
 func (t *greetingTx) SayHi(req *SelfIntro) *OkReply {

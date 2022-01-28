@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/anqur/gbio"
+	"github.com/anqur/gbio/endpoints"
 	"github.com/anqur/gbio/logging"
+	"github.com/anqur/gbio/servers"
 )
 
 func internalServerError(w http.ResponseWriter, err error) {
@@ -22,9 +23,9 @@ func ok(w http.ResponseWriter, d []byte, ctx http.Header) {
 	_, _ = w.Write(d)
 }
 
-func RegisterGreeting(i Greeting, opts ...gbio.EndpointOption) gbio.ServerOption {
-	ep := new(gbio.ServerEndpoint)
-	ep.Tag = gbio.DefaultTag
+func RegisterGreeting(i Greeting, opts ...endpoints.Option) servers.Option {
+	ep := new(servers.Endpoint)
+	ep.Tag = endpoints.DefaultTag
 
 	for _, opt := range opts {
 		opt(&ep.Endpoint)
@@ -47,12 +48,12 @@ func RegisterGreeting(i Greeting, opts ...gbio.EndpointOption) gbio.ServerOption
 		logging.Info.Println("Access:", r.RemoteAddr, r.RequestURI)
 	}
 
-	return func(s *gbio.Server) { s.Register(ep) }
+	return func(s *servers.Server) { s.Register(ep) }
 }
 
-func RegisterAdmin(i Admin, opts ...gbio.EndpointOption) gbio.ServerOption {
-	ep := new(gbio.ServerEndpoint)
-	ep.Tag = gbio.DefaultTag
+func RegisterAdmin(i Admin, opts ...endpoints.Option) servers.Option {
+	ep := new(servers.Endpoint)
+	ep.Tag = endpoints.DefaultTag
 
 	for _, opt := range opts {
 		opt(&ep.Endpoint)
@@ -75,5 +76,5 @@ func RegisterAdmin(i Admin, opts ...gbio.EndpointOption) gbio.ServerOption {
 		logging.Info.Println("Access:", r.RemoteAddr, r.RequestURI)
 	}
 
-	return func(s *gbio.Server) { s.Register(ep) }
+	return func(s *servers.Server) { s.Register(ep) }
 }
