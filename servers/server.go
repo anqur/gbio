@@ -45,10 +45,11 @@ func New(rawURL string, opts ...Option) (*Server, error) {
 	return s, nil
 }
 
-func Use(opts ...Option) {
+func Use(opts ...Option) *Server {
 	for _, opt := range opts {
 		opt(Default)
 	}
+	return Default
 }
 
 var Default, _ = New("http://0.0.0.0:8080")

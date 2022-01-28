@@ -36,12 +36,13 @@ func (Admin) HiAdmin(i *hello.ImAdmin) hello.Reply {
 }
 
 func main() {
-	servers.Use(
-		hello.RegisterGreeting(new(Greeting)),
-		hello.RegisterGreeting(new(GreetingV2), endpoints.WithTag("v2")),
-		hello.RegisterAdmin(new(Admin)),
-	)
-	if err := servers.ListenAndServe(); err != nil {
+	if err := servers.
+		Use(
+			hello.RegisterGreeting(new(Greeting)),
+			hello.RegisterGreeting(new(GreetingV2), endpoints.WithTag("v2")),
+			hello.RegisterAdmin(new(Admin)),
+		).
+		ListenAndServe(); err != nil {
 		panic(err)
 	}
 }
