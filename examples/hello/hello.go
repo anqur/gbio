@@ -16,12 +16,14 @@ const (
 	Unauthorized
 )
 
-type Reply interface{ isReply() int }
-type OkReply struct{ Message string }
-type ErrReply struct {
-	Code  Code
-	Error string
-}
+type (
+	Reply    interface{ isReply() int }
+	OkReply  struct{ Message string }
+	ErrReply struct {
+		Code  Code
+		Error string
+	}
+)
 
 func (OkReply) isReply() int  { return 1 }
 func (ErrReply) isReply() int { return 2 }

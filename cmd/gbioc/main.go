@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/anqur/gbio/internal/codegens"
-	"github.com/anqur/gbio/internal/parsers"
+	"github.com/anqur/gbio/internal/compilers/codegens"
+	"github.com/anqur/gbio/internal/compilers/parsers"
 	"github.com/anqur/gbio/internal/utils"
 )
 
