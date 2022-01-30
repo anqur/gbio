@@ -209,7 +209,16 @@ func (p *Parser) checkInterfaceMethodType(f *ast.Field, t ast.Expr) {
 		))
 	}
 
-	if n := fn.Params.NumFields(); n != 1 {
+	p.checkInterfaceMethodParamType(name, t, fn.Params)
+	p.checkInterfaceMethodReturnType(name, t, fn.Results)
+}
+
+func (p *Parser) checkInterfaceMethodParamType(
+	name *ast.Ident,
+	t ast.Expr,
+	fl *ast.FieldList,
+) {
+	if n := fl.NumFields(); n != 1 {
 		panic(p.Errorf(
 			t.Pos(),
 			"unexpected parameter length %d of %v, expected 1",
@@ -217,7 +226,15 @@ func (p *Parser) checkInterfaceMethodType(f *ast.Field, t ast.Expr) {
 			name,
 		))
 	}
-	if n := fn.Results.NumFields(); n != 1 {
+	p.checkInterfaceMethodTypeReference(fl.List[0].Type)
+}
+
+func (p *Parser) checkInterfaceMethodReturnType(
+	name *ast.Ident,
+	t ast.Expr,
+	fl *ast.FieldList,
+) {
+	if n := fl.NumFields(); n != 1 {
 		panic(p.Errorf(
 			t.Pos(),
 			"unexpected return value length %d of %v, expected 1",
@@ -225,7 +242,10 @@ func (p *Parser) checkInterfaceMethodType(f *ast.Field, t ast.Expr) {
 			name,
 		))
 	}
+	p.checkInterfaceMethodTypeReference(fl.List[0].Type)
+}
 
+func (p *Parser) checkInterfaceMethodTypeReference(t ast.Expr) {
 	// TODO
 }
 
