@@ -21,6 +21,7 @@ func TestSayHi(t *testing.T) {
 
 func TestSayHiV2(t *testing.T) {
 	tx := hello.Tx.Greeting(endpoints.WithTag("v2"))
+	tx.Cl.Close()
 	r := tx.SayHi(&hello.SelfIntro{Name: "Anqur"})
 	if err := tx.Error; err != nil {
 		t.Fatal(err)

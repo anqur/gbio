@@ -21,29 +21,32 @@ var (
 )
 
 type Client struct {
-	H   *http.Client
-	U   *url.URL
-	Reg *registries.CachedRegistry
+	h   *http.Client
+	u   *url.URL
+	reg *registries.CachedRegistry
 }
 
-func (c *Client) LookupEndpoint(serviceKey string) (string, error) {
-	if c.U != nil {
-		return (&url.URL{Scheme: c.U.Scheme, Host: c.U.Host}).String(), nil
+func (c *Client) lookup(epName string) (string, error) {
+	if c.u != nil {
+		return (&url.URL{Scheme: c.u.Scheme, Host: c.u.Host}).String(), nil
 	}
-	if c.Reg != nil {
-		return c.Reg.Lookup(registries.EndpointName(serviceKey))
+	if c.reg != nil {
+		return c.reg.Lookup(registries.EndpointName(epName))
 	}
 	return "", ErrEndpointNotGiven
 }
 
 func (c *Client) Close() error {
-	return c.Reg.Close()
+	if c.reg == nil {
+		return nil
+	}
+	return c.reg.Close()
 }
 
 type Option func(c *Client) error
 
 func New(opts ...Option) (c *Client, err error) {
-	c = &Client{H: http.DefaultClient}
+	c = &Client{h: http.DefaultClient}
 	for _, opt := range opts {
 		if err = opt(c); err != nil {
 			return
@@ -65,7 +68,7 @@ var Default, _ = New(WithURL("http://localhost:8080"))
 
 func WithURL(rawUrl string) Option {
 	return func(c *Client) (err error) {
-		c.U, err = url.Parse(rawUrl)
+		c.u, err = url.Parse(rawUrl)
 		return
 	}
 }
@@ -75,9 +78,9 @@ func WithRegistry(
 	opts ...RegistryOption,
 ) Option {
 	return func(c *Client) error {
-		c.Reg = registries.NewCached(cfg)
+		c.reg = registries.NewCached(cfg)
 		for _, opt := range opts {
-			opt(c.Reg)
+			opt(c.reg)
 		}
 		return nil
 	}
@@ -85,20 +88,23 @@ func WithRegistry(
 
 func WithHttpClient(h *http.Client) Option {
 	return func(c *Client) error {
-		c.H = h
+		c.h = h
 		return nil
 	}
 }
 
-func (c *Client) HttpClient() *http.Client { return c.H }
+func (c *Client) HttpClient() *http.Client { return c.h }
 
-func (c *Client) Request(k, path string, e codec.Encoder) (*http.Request, error) {
+func (c *Client) Request(
+	epName, path string,
+	e codec.Encoder,
+) (*http.Request, error) {
 	d, ctx, err := e.Marshal()
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := c.LookupEndpoint(k)
+	u, err := c.lookup(epName)
 	if err != nil {
 		return nil, err
 	}
