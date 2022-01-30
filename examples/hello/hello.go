@@ -8,7 +8,7 @@ type ImAdmin struct {
 	Authorization string `json:"-"`
 }
 
-type Code int
+type Code = int
 
 const (
 	OK Code = iota
