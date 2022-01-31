@@ -190,7 +190,7 @@ func (*Parser) isVariantType(name *ast.Ident, i *ast.InterfaceType) bool {
 	return retType.Name == reflect.Int.String()
 }
 
-func (p *Parser) checkInterfaceMethodType(f *ast.Field, t ast.Expr) {
+func (p *Parser) checkMethodType(f *ast.Field, t ast.Expr) {
 	if len(f.Names) == 0 {
 		panic(p.Errorf(t.Pos(), "embedded interface field not supported"))
 	}
@@ -209,11 +209,11 @@ func (p *Parser) checkInterfaceMethodType(f *ast.Field, t ast.Expr) {
 		))
 	}
 
-	p.checkInterfaceMethodParamType(name, t, fn.Params)
-	p.checkInterfaceMethodReturnType(name, t, fn.Results)
+	p.checkMethodParamType(name, t, fn.Params)
+	p.checkMethodReturnType(name, t, fn.Results)
 }
 
-func (p *Parser) checkInterfaceMethodParamType(
+func (p *Parser) checkMethodParamType(
 	name *ast.Ident,
 	t ast.Expr,
 	fl *ast.FieldList,
@@ -226,10 +226,10 @@ func (p *Parser) checkInterfaceMethodParamType(
 			name,
 		))
 	}
-	p.checkInterfaceMethodTypeReference(fl.List[0].Type)
+	p.checkMethodTypeReference(fl.List[0].Type)
 }
 
-func (p *Parser) checkInterfaceMethodReturnType(
+func (p *Parser) checkMethodReturnType(
 	name *ast.Ident,
 	t ast.Expr,
 	fl *ast.FieldList,
@@ -242,11 +242,45 @@ func (p *Parser) checkInterfaceMethodReturnType(
 			name,
 		))
 	}
-	p.checkInterfaceMethodTypeReference(fl.List[0].Type)
+	p.checkMethodTypeReference(fl.List[0].Type)
 }
 
-func (p *Parser) checkInterfaceMethodTypeReference(t ast.Expr) {
-	// TODO
+func (p *Parser) checkMethodTypeReference(t ast.Expr) {
+	if id, ok := t.(*ast.Ident); ok {
+		p.checkVariantTypeReference(id)
+		return
+	}
+	if s, ok := t.(*ast.StarExpr); ok {
+		p.checkStructTypeReference(s.X)
+		return
+	}
+	panic(p.Errorf(t.Pos(), "unexpected method type reference"))
+}
+
+func (p *Parser) checkVariantTypeReference(id *ast.Ident) {
+	if id.Obj != nil {
+		if spec, ok := id.Obj.Decl.(*ast.TypeSpec); ok {
+			i, ok := spec.Type.(*ast.InterfaceType)
+			if ok && p.isVariantType(spec.Name, i) {
+				return
+			}
+		}
+	}
+	panic(p.Errorf(id.Pos(), "unresolvable variant type reference"))
+}
+
+func (p *Parser) checkStructTypeReference(t ast.Expr) {
+	if id, ok := t.(*ast.Ident); ok && id.Obj != nil {
+		if spec, ok := id.Obj.Decl.(*ast.TypeSpec); ok {
+			if _, ok := spec.Type.(*ast.StructType); ok {
+				return
+			}
+		}
+	}
+	panic(p.Errorf(
+		t.Pos(),
+		"unresolvable struct type reference",
+	))
 }
 
 func (p *Parser) parseInterfaceType(name *ast.Ident, i *ast.InterfaceType) {
@@ -258,8 +292,9 @@ func (p *Parser) parseInterfaceType(name *ast.Ident, i *ast.InterfaceType) {
 		return
 	}
 	for _, field := range i.Methods.List {
-		p.checkInterfaceMethodType(field, field.Type)
+		p.checkMethodType(field, field.Type)
 	}
+	p.AddRawDecl(&langs.InterfaceType{Ident: name, Methods: i.Methods.List})
 }
 
 func (p *Parser) parseTypeAlias(name, typ *ast.Ident) {
