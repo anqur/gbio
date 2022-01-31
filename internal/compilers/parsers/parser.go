@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"reflect"
+	"strconv"
 	"unicode"
 
 	"github.com/anqur/gbio/internal/compilers/codegens"
@@ -67,8 +68,52 @@ func (p *Parser) parseDecls(decls []ast.Decl) *Parser {
 	return p
 }
 
-func (*Parser) parseFuncDecl(fn *ast.FuncDecl) {
-	// TODO
+func (p *Parser) checkCaseType(fn *ast.FuncDecl) {
+	if fn.Recv.NumFields() == 0 {
+		panic(p.Errorf(
+			fn.Pos(),
+			"unexpected case declaration %v, expected receiver",
+			fn.Name,
+		))
+	}
+	p.checkStructTypeIdent(fn.Recv.List[0].Type)
+
+	ty := fn.Type
+	if ty.Params.NumFields() == 0 && ty.Results.NumFields() == 1 {
+		if ret, ok := ty.Results.List[0].Type.(*ast.Ident); ok {
+			if ret.Name == reflect.Int.String() {
+				return
+			}
+		}
+	}
+
+	panic(p.Errorf(
+		fn.Pos(),
+		"unexpected function type of %v, expected `func() int`",
+		fn.Name,
+	))
+}
+
+func (p *Parser) parseCaseID(body *ast.BlockStmt) int {
+	if bodies := body.List; len(bodies) == 1 {
+		if stmt, ok := bodies[0].(*ast.ReturnStmt); ok {
+			if rets := stmt.Results; len(rets) == 1 {
+				if lit, ok := rets[0].(*ast.BasicLit); ok && lit.Kind == token.INT {
+					n, _ := strconv.ParseInt(lit.Value, 10, 64)
+					return int(n)
+				}
+			}
+		}
+	}
+	panic(p.Errorf(
+		body.Pos(),
+		"unexpected case ID declaration, expected literals e.g. `return 1`",
+	))
+}
+
+func (p *Parser) parseFuncDecl(f *ast.FuncDecl) {
+	p.checkCaseType(f)
+	p.AddRawDecl(&langs.Case{Recv: f.Recv.List[0], ID: p.parseCaseID(f.Body)})
 }
 
 func (p *Parser) parseGenDecl(g *ast.GenDecl) {
@@ -226,7 +271,7 @@ func (p *Parser) checkMethodParamType(
 			name,
 		))
 	}
-	p.checkMethodTypeReference(fl.List[0].Type)
+	p.checkMethodTypeIdent(fl.List[0].Type)
 }
 
 func (p *Parser) checkMethodReturnType(
@@ -242,22 +287,25 @@ func (p *Parser) checkMethodReturnType(
 			name,
 		))
 	}
-	p.checkMethodTypeReference(fl.List[0].Type)
+	p.checkMethodTypeIdent(fl.List[0].Type)
 }
 
-func (p *Parser) checkMethodTypeReference(t ast.Expr) {
+func (p *Parser) checkMethodTypeIdent(t ast.Expr) {
 	if id, ok := t.(*ast.Ident); ok {
-		p.checkVariantTypeReference(id)
+		p.checkVariantTypeIdent(id)
 		return
 	}
 	if s, ok := t.(*ast.StarExpr); ok {
-		p.checkStructTypeReference(s.X)
+		p.checkStructTypeIdent(s.X)
 		return
 	}
-	panic(p.Errorf(t.Pos(), "unexpected method type reference"))
+	panic(p.Errorf(
+		t.Pos(),
+		"unexpected method type identifiers, expected struct pointers or variants",
+	))
 }
 
-func (p *Parser) checkVariantTypeReference(id *ast.Ident) {
+func (p *Parser) checkVariantTypeIdent(id *ast.Ident) {
 	if id.Obj != nil {
 		if spec, ok := id.Obj.Decl.(*ast.TypeSpec); ok {
 			i, ok := spec.Type.(*ast.InterfaceType)
@@ -266,10 +314,10 @@ func (p *Parser) checkVariantTypeReference(id *ast.Ident) {
 			}
 		}
 	}
-	panic(p.Errorf(id.Pos(), "unresolvable variant type reference"))
+	panic(p.Errorf(id.Pos(), "unresolvable variant type identifier"))
 }
 
-func (p *Parser) checkStructTypeReference(t ast.Expr) {
+func (p *Parser) checkStructTypeIdent(t ast.Expr) {
 	if id, ok := t.(*ast.Ident); ok && id.Obj != nil {
 		if spec, ok := id.Obj.Decl.(*ast.TypeSpec); ok {
 			if _, ok := spec.Type.(*ast.StructType); ok {
@@ -279,7 +327,7 @@ func (p *Parser) checkStructTypeReference(t ast.Expr) {
 	}
 	panic(p.Errorf(
 		t.Pos(),
-		"unresolvable struct type reference",
+		"unresolvable struct type identifier",
 	))
 }
 

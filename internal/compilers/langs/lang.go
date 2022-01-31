@@ -28,7 +28,7 @@ type (
 		Cases []*Case
 	}
 	Case struct {
-		Recv *ast.Ident
+		Recv *ast.Field
 		ID   int
 	}
 	InterfaceType struct {
