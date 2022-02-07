@@ -39,10 +39,6 @@ type (
 		Ident     *ast.Ident
 		Constants []*ast.ValueSpec
 	}
-	Constant struct {
-		// TODO: Type
-		Value *ast.ValueSpec
-	}
 )
 
 func (StructType) isDecl()    {}
@@ -50,7 +46,6 @@ func (VariantType) isDecl()   {}
 func (Case) isDecl()          {}
 func (InterfaceType) isDecl() {}
 func (EnumType) isDecl()      {}
-func (Constant) isDecl()      {}
 
 func (g *Gbio) AddRawDecl(decl Decl) {
 	g.rawDecls = append(g.rawDecls, decl)

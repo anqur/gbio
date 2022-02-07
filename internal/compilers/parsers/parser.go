@@ -123,9 +123,7 @@ func (p *Parser) parseGenDecl(g *ast.GenDecl) {
 			p.parseTypeSpec(spec.(*ast.TypeSpec))
 		}
 	case token.CONST:
-		for _, spec := range g.Specs {
-			p.parseConstDef(spec.(*ast.ValueSpec))
-		}
+		// Accepts this syntax but does nothing with it.
 	default:
 		panic(p.Errorf(
 			g.Pos(),
@@ -144,8 +142,8 @@ func (p *Parser) parseTypeSpec(s *ast.TypeSpec) {
 		p.parseInterfaceType(s.Name, i)
 		return
 	}
-	if id, ok := s.Type.(*ast.Ident); ok && s.Assign != 0 {
-		p.parseTypeAlias(s.Name, id)
+	if _, ok := s.Type.(*ast.Ident); ok {
+		// Type alias, accepts but does nothing with it.
 		return
 	}
 	panic(p.Errorf(
@@ -153,10 +151,6 @@ func (p *Parser) parseTypeSpec(s *ast.TypeSpec) {
 		"unsupported type spec %v, expected `struct`, `interface` or type aliases",
 		s.Name,
 	))
-}
-
-func (p *Parser) parseConstDef(s *ast.ValueSpec) {
-	// TODO
 }
 
 func (p *Parser) checkStructFieldType(f *ast.Field, t ast.Expr) {
@@ -343,8 +337,4 @@ func (p *Parser) parseInterfaceType(name *ast.Ident, i *ast.InterfaceType) {
 		p.checkMethodType(field, field.Type)
 	}
 	p.AddRawDecl(&langs.InterfaceType{Ident: name, Methods: i.Methods.List})
-}
-
-func (p *Parser) parseTypeAlias(name, typ *ast.Ident) {
-	// TODO
 }
