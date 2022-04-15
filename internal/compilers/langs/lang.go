@@ -11,43 +11,43 @@ import (
 type (
 	Gbio struct {
 		FSet *token.FileSet
+		Pkg  string
 
-		rawDecls []Decl
+		rawDecls []RawDecl
+		checked  struct{}
 	}
 
-	Decl interface {
-		isDecl()
-	}
-	StructType struct {
+	RawDecl   interface{ isRawDecl() }
+	RawStruct struct {
 		Ident *ast.Ident
 		Type  *ast.StructType
 	}
-	VariantType struct {
+	RawVariant struct {
 		Ident *ast.Ident
 		Type  *ast.InterfaceType
-		Cases []*Case
+		Cases []*RawCase
 	}
-	Case struct {
+	RawCase struct {
 		Recv *ast.Field
 		ID   int
 	}
-	InterfaceType struct {
+	RawInterface struct {
 		Ident   *ast.Ident
 		Methods []*ast.Field
 	}
-	EnumType struct {
+	RawEnum struct {
 		Ident     *ast.Ident
 		Constants []*ast.ValueSpec
 	}
 )
 
-func (StructType) isDecl()    {}
-func (VariantType) isDecl()   {}
-func (Case) isDecl()          {}
-func (InterfaceType) isDecl() {}
-func (EnumType) isDecl()      {}
+func (RawStruct) isRawDecl()    {}
+func (RawVariant) isRawDecl()   {}
+func (RawCase) isRawDecl()      {}
+func (RawInterface) isRawDecl() {}
+func (RawEnum) isRawDecl()      {}
 
-func (g *Gbio) AddRawDecl(decl Decl) {
+func (g *Gbio) AddRaw(decl RawDecl) {
 	g.rawDecls = append(g.rawDecls, decl)
 }
 
