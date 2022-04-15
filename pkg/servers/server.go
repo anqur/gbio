@@ -3,10 +3,10 @@ package servers
 import (
 	"context"
 	"fmt"
+	"github.com/anqur/gbio/pkg/logging"
 	"net/http"
 	"net/url"
 
-	"github.com/anqur/gbio/logging"
 	etcd "go.etcd.io/etcd/client/v3"
 
 	"github.com/anqur/gbio/internal/endpoints"

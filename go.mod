@@ -1,6 +1,6 @@
 module github.com/anqur/gbio
 
-go 1.17
+go 1.18
 
 require go.etcd.io/etcd/client/v3 v3.5.1
 

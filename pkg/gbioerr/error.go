@@ -1,4 +1,4 @@
-package base
+package gbioerr
 
 import "errors"
 

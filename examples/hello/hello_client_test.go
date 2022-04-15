@@ -3,7 +3,7 @@ package hello_test
 import (
 	"testing"
 
-	"github.com/anqur/gbio/endpoints"
+	"github.com/anqur/gbio/pkg/endpoints"
 
 	"github.com/anqur/gbio/examples/hello"
 )

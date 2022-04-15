@@ -1,4 +1,4 @@
-package codec
+package encoding
 
 import "net/http"
 

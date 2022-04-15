@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/anqur/gbio/pkg/gbioerr"
+	"github.com/anqur/gbio/pkg/encoding"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/anqur/gbio/base"
-	"github.com/anqur/gbio/codec"
 	etcd "go.etcd.io/etcd/client/v3"
 
 	"github.com/anqur/gbio/internal/endpoints"
@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	ErrEndpointNotGiven = fmt.Errorf("%w: endpoint not given", base.Err)
+	ErrEndpointNotGiven = fmt.Errorf("%w: endpoint not given", gbioerr.Err)
 )
 
 type Client struct {
@@ -97,7 +97,7 @@ func (c *Client) HttpClient() *http.Client { return c.h }
 
 func (c *Client) Request(
 	epName, path string,
-	e codec.Encoder,
+	e encoding.Encoder,
 ) (*http.Request, error) {
 	d, ctx, err := e.Marshal()
 	if err != nil {

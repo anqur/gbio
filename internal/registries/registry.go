@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/anqur/gbio/pkg/logging"
+	"github.com/anqur/gbio/pkg/registries"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/anqur/gbio/logging"
-	"github.com/anqur/gbio/registries"
 	etcd "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 

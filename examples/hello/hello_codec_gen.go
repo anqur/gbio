@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/anqur/gbio/codec"
+	"github.com/anqur/gbio/pkg/encoding"
 )
 
 type tagger struct {
@@ -136,7 +136,7 @@ func (e *ReplyEncoder) Marshal() ([]byte, http.Header, error) {
 		d, err = json.Marshal(tagged)
 
 	default:
-		err = fmt.Errorf("%w: %+v", codec.ErrBadMsgType, v)
+		err = fmt.Errorf("%w: %+v", encoding.ErrBadMsgType, v)
 	}
 	return d, nil, err
 }
@@ -166,7 +166,7 @@ func (d *Decoder) Reply() (Reply, error) {
 		resp = &resp0
 
 	default:
-		err = fmt.Errorf("%w: %q", codec.ErrBadMsgTag, t)
+		err = fmt.Errorf("%w: %q", encoding.ErrBadMsgTag, t)
 	}
 	if err != nil {
 		return nil, err
