@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anqur/gbio/pkg/endpoints"
-	"github.com/anqur/gbio/pkg/servers"
+	"github.com/anqur/gbio/core/endpoints"
+	"github.com/anqur/gbio/core/servers"
 
 	"github.com/anqur/gbio/examples/hello"
 )
@@ -37,10 +37,10 @@ func (Admin) HiAdmin(i *hello.ImAdmin) hello.Reply {
 
 func main() {
 	if err := servers.Use(
-			hello.RegisterGreeting(new(Greeting)),
-			hello.RegisterGreeting(new(GreetingV2), endpoints.WithTag("v2")),
-			hello.RegisterAdmin(new(Admin)),
-		).
+		hello.RegisterGreeting(new(Greeting)),
+		hello.RegisterGreeting(new(GreetingV2), endpoints.WithTag("v2")),
+		hello.RegisterAdmin(new(Admin)),
+	).
 		ListenAndServe(); err != nil {
 		panic(err)
 	}

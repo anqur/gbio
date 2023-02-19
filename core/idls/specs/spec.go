@@ -1,4 +1,4 @@
-package langs
+package specs
 
 import (
 	"fmt"

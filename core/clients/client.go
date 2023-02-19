@@ -4,16 +4,16 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/anqur/gbio/pkg/gbioerr"
-	"github.com/anqur/gbio/pkg/encoding"
 	"net/http"
 	"net/url"
 	"time"
 
 	etcd "go.etcd.io/etcd/client/v3"
 
-	"github.com/anqur/gbio/internal/endpoints"
-	"github.com/anqur/gbio/internal/registries"
+	"github.com/anqur/gbio/core/encoding"
+	"github.com/anqur/gbio/core/gbioerr"
+	"github.com/anqur/gbio/core/internal/endpoints"
+	"github.com/anqur/gbio/core/internal/registries"
 )
 
 var (

@@ -1,6 +1,6 @@
 package codegens
 
-import "github.com/anqur/gbio/internal/compilers/langs"
+import "github.com/anqur/gbio/core/idls/specs"
 
 type Codegen struct {
 	OutDir        string
@@ -8,7 +8,7 @@ type Codegen struct {
 	Marshaller    string
 	Discriminator string
 
-	langs.Gbio
+	specs.Gbio
 }
 
 func (c *Codegen) Generate() {

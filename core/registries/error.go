@@ -2,7 +2,8 @@ package registries
 
 import (
 	"fmt"
-	"github.com/anqur/gbio/pkg/gbioerr"
+
+	"github.com/anqur/gbio/core/gbioerr"
 )
 
 var (

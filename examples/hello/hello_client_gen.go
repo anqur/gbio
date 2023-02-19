@@ -3,8 +3,8 @@ package hello
 import (
 	"fmt"
 
-	"github.com/anqur/gbio/pkg/clients"
-	"github.com/anqur/gbio/pkg/endpoints"
+	"github.com/anqur/gbio/core/clients"
+	"github.com/anqur/gbio/core/endpoints"
 )
 
 type (

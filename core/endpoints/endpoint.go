@@ -1,6 +1,6 @@
 package endpoints
 
-import "github.com/anqur/gbio/internal/endpoints"
+import "github.com/anqur/gbio/core/internal/endpoints"
 
 type Option func(s *endpoints.Endpoint)
 

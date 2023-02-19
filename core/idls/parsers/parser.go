@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"unicode"
 
-	"github.com/anqur/gbio/internal/compilers/codegens"
-	"github.com/anqur/gbio/internal/compilers/langs"
-	"github.com/anqur/gbio/internal/utils"
+	"github.com/anqur/gbio/core/idls/codegens"
+	"github.com/anqur/gbio/core/idls/specs"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -114,7 +114,7 @@ func (p *Parser) parseCaseID(body *ast.BlockStmt) int {
 
 func (p *Parser) parseFuncDecl(f *ast.FuncDecl) {
 	p.checkCaseType(f)
-	p.AddRaw(&langs.RawCase{Recv: f.Recv.List[0], ID: p.parseCaseID(f.Body)})
+	p.AddRaw(&specs.RawCase{Recv: f.Recv.List[0], ID: p.parseCaseID(f.Body)})
 }
 
 func (p *Parser) parseGenDecl(g *ast.GenDecl) {
@@ -168,7 +168,7 @@ func (p *Parser) checkStructFieldType(f *ast.Field, t ast.Expr) {
 				return
 			}
 		}
-		if utils.OneOf(id.Name, validFieldTypeIdents) {
+		if slices.Contains(validFieldTypeIdents, id.Name) {
 			return
 		}
 		panic(p.Errorf(
@@ -202,7 +202,7 @@ func (p *Parser) parseStructType(name *ast.Ident, st *ast.StructType) {
 	for _, field := range st.Fields.List {
 		p.checkStructFieldType(field, field.Type)
 	}
-	p.AddRaw(&langs.RawStruct{Ident: name, Type: st})
+	p.AddRaw(&specs.RawStruct{Ident: name, Type: st})
 }
 
 func (*Parser) isVariantType(name *ast.Ident, i *ast.InterfaceType) bool {
@@ -331,11 +331,11 @@ func (p *Parser) parseInterfaceType(name *ast.Ident, i *ast.InterfaceType) {
 		panic(p.Errorf(i.Pos(), "unexpected empty interface"))
 	}
 	if p.isVariantType(name, i) {
-		p.AddRaw(&langs.RawVariant{Ident: name, Type: i})
+		p.AddRaw(&specs.RawVariant{Ident: name, Type: i})
 		return
 	}
 	for _, field := range i.Methods.List {
 		p.checkMethodType(field, field.Type)
 	}
-	p.AddRaw(&langs.RawInterface{Ident: name, Methods: i.Methods.List})
+	p.AddRaw(&specs.RawInterface{Ident: name, Methods: i.Methods.List})
 }

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/anqur/gbio/pkg/endpoints"
-	"github.com/anqur/gbio/pkg/logging"
-	"github.com/anqur/gbio/pkg/servers"
+	"github.com/anqur/gbio/core/endpoints"
+	"github.com/anqur/gbio/core/logging"
+	"github.com/anqur/gbio/core/servers"
 )
 
 func internalServerError(w http.ResponseWriter, err error) {

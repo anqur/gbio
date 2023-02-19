@@ -1,15 +1,17 @@
-module github.com/anqur/gbio
+module github.com/anqur/gbio/core
 
 go 1.20
 
-require go.etcd.io/etcd/client/v3 v3.6.0-alpha.0.0.20230218100148-8e56e2f5ce4c
+require (
+	go.etcd.io/etcd/client/v3 v3.6.0-alpha.0.0.20230218100148-8e56e2f5ce4c
+	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
+)
 
 require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.0-alpha.0 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.0-alpha.0 // indirect

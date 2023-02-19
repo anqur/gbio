@@ -3,15 +3,15 @@ package servers
 import (
 	"context"
 	"fmt"
-	"github.com/anqur/gbio/pkg/logging"
 	"net/http"
 	"net/url"
 
 	etcd "go.etcd.io/etcd/client/v3"
 
-	"github.com/anqur/gbio/internal/endpoints"
-	"github.com/anqur/gbio/internal/registries"
-	"github.com/anqur/gbio/internal/utils"
+	"github.com/anqur/gbio/core/internal/endpoints"
+	"github.com/anqur/gbio/core/internal/registries"
+	"github.com/anqur/gbio/core/internal/utils"
+	"github.com/anqur/gbio/core/logging"
 )
 
 type Server struct {

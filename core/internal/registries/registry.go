@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/anqur/gbio/pkg/logging"
-	"github.com/anqur/gbio/pkg/registries"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +11,9 @@ import (
 	etcd "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 
-	"github.com/anqur/gbio/internal/endpoints"
+	"github.com/anqur/gbio/core/internal/endpoints"
+	"github.com/anqur/gbio/core/logging"
+	"github.com/anqur/gbio/core/registries"
 )
 
 const DefaultPrefix = "gbio-"

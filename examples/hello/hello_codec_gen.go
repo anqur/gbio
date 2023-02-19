@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/anqur/gbio/pkg/encoding"
+	"github.com/anqur/gbio/core/encoding"
 )
 
 type tagger struct {

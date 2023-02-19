@@ -6,9 +6,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/anqur/gbio/internal/compilers/codegens"
-	"github.com/anqur/gbio/internal/compilers/parsers"
-	"github.com/anqur/gbio/internal/utils"
+	"github.com/anqur/gbio/core/idls/codegens"
+	"github.com/anqur/gbio/core/idls/parsers"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -94,14 +94,14 @@ func parseArgs() {
 }
 
 func validateArgs() {
-	if !utils.OneOf(target, targets) {
+	if !slices.Contains(targets, target) {
 		invalidArgs(
 			"Invalid code generation target %q, expected %v",
 			target,
 			targets,
 		)
 	}
-	if !utils.OneOf(marshaller, marshallers) {
+	if !slices.Contains(marshallers, marshaller) {
 		invalidArgs(
 			"Invalid marshalling format: %q, expected %v",
 			marshaller,
