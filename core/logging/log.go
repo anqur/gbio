@@ -5,9 +5,11 @@ import (
 	"os"
 )
 
+type LogLiner interface{ Println(a ...any) }
+
 const DefaultFlag = log.LstdFlags | log.Lmicroseconds | log.Lmsgprefix
 
 var (
-	Info  = log.New(os.Stderr, "INFO ", DefaultFlag)
-	Error = log.New(os.Stderr, "ERROR ", DefaultFlag)
+	Info  LogLiner = log.New(os.Stderr, "INFO ", DefaultFlag)
+	Error LogLiner = log.New(os.Stderr, "ERROR ", DefaultFlag)
 )
